@@ -51,7 +51,7 @@ HEAD_FILES = SpMM_API.cuh \
 			 ../csrc/MMA_PTX.cuh ../csrc/AsyncCopy_PTX.cuh \
 			 ../csrc/TilingConfig.h
 # Target rules
-all: libSpMM_API.so
+all: libSpMM_API.so spmm_test
 
 libSpMM_API.so: SpMM_API.o
 	$(EXEC) $(NVCC) --shared $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
@@ -59,5 +59,11 @@ libSpMM_API.so: SpMM_API.o
 SpMM_API.o:  ../csrc/SpMM_API.cu $(HEAD_FILES)  
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
+spmm_test.o: ../csrc/spmm_test.cu ../csrc/spmm_test_utils.h ../csrc/Flashllm_utils.cuh
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -I.. -o $@ -c $<
+
+spmm_test: spmm_test.o libSpMM_API.so
+	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $< -L. -lSpMM_API $(LIBRARIES)
+
 clean:
-	rm -f libSpMM_API.so SpMM_API.o
+	rm -f libSpMM_API.so SpMM_API.o spmm_test.o spmm_test
