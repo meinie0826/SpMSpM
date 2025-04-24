@@ -25,15 +25,11 @@
 
 int main(int argc, char** argv)
 {
-    if (argc != 6) {
-        printf("Wrong Inputs! Correct input format: ./spmm_test M K N Sparsity SplitK\n");
-        return;
-    }
-    int M_GLOBAL                    = atoi(argv[1]);
-    int K_GLOBAL                    = atoi(argv[2]);
-    int N_GLOBAL                    = atoi(argv[3]);
-    int MATRIX_A_PRUNING_PERCENTAGE = atoi(argv[4]);
-    int SPLIT_K                     = atoi(argv[5]);
+    int M_GLOBAL                    = 256;
+    int K_GLOBAL                    = 256;
+    int N_GLOBAL                    = 256;
+    int MATRIX_A_PRUNING_PERCENTAGE = 50;
+    int SPLIT_K                     = 1;
     cublasStatus_t cublas_status;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -429,7 +425,10 @@ int main(int argc, char** argv)
     cudaFree(max_nnz_intilev3_gpu);
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+    std::cout<<milliseconds_cublas<<' '<<milliseconds_cublas_tc<<' '<<milliseconds_SpMM2<<' '<<milliseconds_SpMM_bitmapv3<<std::endl;
+    std::cout << milliseconds_cublas << ' ' << milliseconds_SpMM_bitmapv3 << ' ' << milliseconds_SpMM_bitmapv3 / milliseconds_cublas << std::endl;
+    std::cout << milliseconds_cublas_tc << ' ' << milliseconds_SpMM_bitmapv3 << ' ' << milliseconds_SpMM_bitmapv3 / milliseconds_cublas_tc << std::endl;
+ 
     double totalError_SpMM2 = 0.0;
     double totalError_SpMM_bitmapv3 = 0.0;
 
