@@ -55,14 +55,14 @@ all: spmm_test
 
 # 删除libSpMM_API.a相关规则
 
-SpMM_API.o: SpMM_API.cu $(HEAD_FILES)  
+SpMM_API.o: $(HEAD_FILES)  
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
 spmm_test.o: spmm_test.cu spmm_test_utils.h Flashllm_utils.cuh
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -I.. -o $@ -c $<
 
-# 直接链接SpMM_API.o而不是静态库
-spmm_test: spmm_test.o SpMM_API.o
+
+spmm_test: spmm_test.o 
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $^ $(LIBRARIES)
 
 clean:

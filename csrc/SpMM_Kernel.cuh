@@ -123,6 +123,7 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
         // loading next A from shared to reg a. This can be concurrent with loading next B to shem
         SpMM_LoadFragAwithBitmapFromShem(a, smem + TileOffsets_ThisWarp[(tile_id_k) * 4], smem_BitmapWarp, true);
         PipelinedCoreComputationsBitmap<TilingConfig>(c, a, b, smem_B, warp_start_row, warp_start_col);
+        __syncthreads();
         BitmapTileGlobalPTR = BitmapTileGlobalPTR + TilingConfig::TILE_BITMAP_K_V3;
         BTileGlobalPTR = BTileGlobalPTR + TILE_K;
         current_sparse_tile_start = TileOffsets_ThisBlock[tile_id_k + 1];
