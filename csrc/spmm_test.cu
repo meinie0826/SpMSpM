@@ -23,9 +23,9 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-    int M_GLOBAL = 28672;
-    int K_GLOBAL = 8192;
-    int N_GLOBAL = 1024;
+    int M_GLOBAL = 64;
+    int K_GLOBAL = 64;
+    int N_GLOBAL = 64;
     int MATRIX_A_PRUNING_PERCENTAGE = 50;
     int SPLIT_K = 1;
     cublasStatus_t cublas_status;
