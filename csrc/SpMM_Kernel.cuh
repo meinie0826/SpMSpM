@@ -48,8 +48,10 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem(uint32_t __rest
 
 template <typename TilingConfig>
 __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, const int *TileOffsets, const int *TileOffsets_Median,
-                                      const uint64_t *bitmap, const int *ptr_max_nnz_intile, const half *B, half *Reduction_Workspace,
-                                      const int M_Global, const int N_Global, const int K_Global, int Split_K) {
+                                      const uint64_t *bitmap, const int *ptr_max_nnz_intile, const half *B, const half *Compressed_B,
+                                      const int *TileOffsets_B, const int *TileOffsets_Median_B, const uint64_t *bitmap_B,
+                                      const int *max_nnz_intile_B, half *Reduction_Workspace, const int M_Global, const int N_Global,
+                                      const int K_Global, int Split_K) {
     int max_nnz_intile = *ptr_max_nnz_intile;
 
     const int x = blockIdx.x;

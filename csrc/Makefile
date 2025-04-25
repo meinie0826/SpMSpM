@@ -58,7 +58,7 @@ all: spmm_test
 SpMM_API.o: $(HEAD_FILES)  
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-spmm_test.o: spmm_test.cu spmm_test_utils.h Flashllm_utils.cuh
+spmm_test.o: spmm_test.cu spmm_test_utils.h 
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -I.. -o $@ -c $<
 
 
