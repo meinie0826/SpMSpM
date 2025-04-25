@@ -11,8 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ***************************************************************************/
-#include "../build/SpMM_API.cuh"
-#include "./Flashllm_utils.cuh"
+#include "./SpMM_API.cuh"
+
 #include "./spmm_test_utils.h"
 #include <assert.h>
 #include <cublas_v2.h>
@@ -25,7 +25,7 @@
 int main(int argc, char **argv) {
     int M_GLOBAL = 28672;
     int K_GLOBAL = 8192;
-    int N_GLOBAL = 32;
+    int N_GLOBAL = 1024;
     int MATRIX_A_PRUNING_PERCENTAGE = 50;
     int SPLIT_K = 1;
     cublasStatus_t cublas_status;
@@ -171,6 +171,75 @@ int main(int argc, char **argv) {
     free(bitmap_TileOffsets_global_cpu_v3);
     free(bitmap_TileOffsets_median_cpu_v3);
     printf("Done! Compressed A matrix for bitmap v3 GPU kernel.\n");
+
+
+    // Compress B matrix similar to A
+    printf("Compressing B matrix...\n");
+    half *Compressed_B_cpu_v3 = nullptr;
+    int *B_bitmap_TileOffsets_cpu_v3 = nullptr;
+    int *B_bitmap_TileOffsets_median_cpu_v3 = nullptr;
+    int *B_bitmap_TileOffsets_global_cpu_v3 = nullptr;
+    uint64_t *B_bitmap_cpu_v3 = nullptr;
+    int B_max_nnz_intilev3 = 0;
+    
+    // Call the InitSparseMatrixA_bitmap_v6 function for B (notice B is K_GLOBAL x N_GLOBAL, in column-major order)
+    auto B_num_gtilesv3 =
+        InitSparseMatrixA_bitmap_v6(B_h, K_GLOBAL, N_GLOBAL, 8, 16, 64, 8, 64, 64, &Compressed_B_cpu_v3, &B_bitmap_TileOffsets_cpu_v3,
+                                    &B_bitmap_TileOffsets_median_cpu_v3, &B_bitmap_TileOffsets_global_cpu_v3, &B_bitmap_cpu_v3, B_max_nnz_intilev3);
+    auto B_local_tile_numv3 = 8 * 8;
+    auto B_median_tile_numv3 = 4 * 1;
+    auto B_num_ltilesv3 = B_num_gtilesv3 * B_local_tile_numv3;
+    auto B_num_mtilesv3 = B_num_gtilesv3 * B_median_tile_numv3;
+    
+    // The offset of the last tile is equal to the total number of compressed non-zero values
+    int B_val_count_v3 = B_bitmap_TileOffsets_global_cpu_v3[B_num_gtilesv3];
+    int B_val_count_median_v3 = B_bitmap_TileOffsets_median_cpu_v3[B_num_mtilesv3];
+    
+    // Adjust B_max_nnz_intilev3 to a multiple of 64
+    if (B_max_nnz_intilev3 % 64 != 0) {
+        B_max_nnz_intilev3 = ((B_max_nnz_intilev3 / 64) + 1) * 64;
+    }
+    
+    printf("B num_global_tiles: %d, bitmap v3 NNZ: %d, bitmap v3 median layer NNZ: %d, max_nnz_intilev3: %d \n", 
+           B_num_gtilesv3, B_val_count_v3, B_val_count_median_v3, B_max_nnz_intilev3);
+    
+    // Allocate device memory for compressed B
+    half *Compressed_B_gpu_v3 = nullptr;
+    int *B_bitmap_TileOffsets_gpu_v3 = nullptr;
+    int *B_bitmap_TileOffsets_median_gpu_v3 = nullptr;
+    int *B_bitmap_TileOffsets_global_gpu_v3 = nullptr;
+    uint64_t *B_bitmap_gpu_v3 = nullptr;
+    
+    cudaMalloc(&B_bitmap_TileOffsets_gpu_v3, sizeof(int) * (B_num_ltilesv3 + 1));
+    cudaMalloc(&B_bitmap_gpu_v3, sizeof(uint64_t) * (B_num_ltilesv3));
+    cudaMalloc(&B_bitmap_TileOffsets_median_gpu_v3, sizeof(int) * (B_num_mtilesv3));
+    cudaMalloc(&B_bitmap_TileOffsets_global_gpu_v3, sizeof(int) * (B_num_gtilesv3 + 1));
+    
+    if (B_val_count_v3 == 0)
+        B_val_count_v3 = 1; // For 100% sparsity, NNZ = 0, malloc will return NULL
+    
+    cudaMalloc(&Compressed_B_gpu_v3, sizeof(half) * B_val_count_v3);
+    
+    if (B_bitmap_TileOffsets_gpu_v3 == NULL || B_bitmap_gpu_v3 == NULL || Compressed_B_gpu_v3 == NULL || B_bitmap_TileOffsets_global_gpu_v3 == NULL) {
+        printf("Error in malloc memory from device memory for compressed B!\n");
+        exit(-1);
+    }
+    
+    // Copy compressed B data to device
+    cudaMemcpy(B_bitmap_TileOffsets_gpu_v3, B_bitmap_TileOffsets_cpu_v3, sizeof(int) * (B_num_ltilesv3 + 1), cudaMemcpyHostToDevice);
+    cudaMemcpy(B_bitmap_TileOffsets_global_gpu_v3, B_bitmap_TileOffsets_global_cpu_v3, sizeof(int) * (B_num_gtilesv3 + 1), cudaMemcpyHostToDevice);
+    cudaMemcpy(B_bitmap_TileOffsets_median_gpu_v3, B_bitmap_TileOffsets_median_cpu_v3, sizeof(int) * (B_num_mtilesv3), cudaMemcpyHostToDevice);
+    cudaMemcpy(B_bitmap_gpu_v3, B_bitmap_cpu_v3, sizeof(uint64_t) * B_num_ltilesv3, cudaMemcpyHostToDevice);
+    cudaMemcpy(Compressed_B_gpu_v3, Compressed_B_cpu_v3, sizeof(half) * B_val_count_v3, cudaMemcpyHostToDevice);
+    
+    // Free CPU memory for compressed B
+    free(B_bitmap_TileOffsets_cpu_v3);
+    free(B_bitmap_cpu_v3);
+    free(Compressed_B_cpu_v3);
+    free(B_bitmap_TileOffsets_global_cpu_v3);
+    free(B_bitmap_TileOffsets_median_cpu_v3);
+    
+    printf("Done! Compressed B matrix for bitmap v3 GPU kernel.\n");
 
     printf("Launching bitmapv3 without Ahead of Time Sparse Data Reordering...\n");
     Split_K = SPLIT_K;
