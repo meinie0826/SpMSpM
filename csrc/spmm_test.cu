@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ***************************************************************************/
+#include "../build/SpMM_API.cuh"
+#include "./Flashllm_utils.cuh"
 #include "./spmm_test_utils.h"
-#include "SpMM_API.cuh"
 #include <assert.h>
 #include <cublas_v2.h>
 #include <cuda.h>
@@ -22,28 +23,25 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-    int M_GLOBAL = 64;
-    int K_GLOBAL = 64;
-    int N_GLOBAL = 64;
+    int M_GLOBAL = 28672;
+    int K_GLOBAL = 8192;
+    int N_GLOBAL = 32;
     int MATRIX_A_PRUNING_PERCENTAGE = 50;
-    int Split_K = 1;
+    int SPLIT_K = 1;
     cublasStatus_t cublas_status;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     // Host memory
-    half *A_h = NULL; // row major
-    half *B_h = NULL; // col major
-
+    half *A_h = NULL;            // row major
+    half *B_h = NULL;            // col major
     // Device memory
     half *A = NULL;
     half *B = NULL;
-
-    //
     A_h = (half *)malloc(sizeof(half) * M_GLOBAL * K_GLOBAL);
     B_h = (half *)malloc(sizeof(half) * K_GLOBAL * N_GLOBAL);
 
-    if (A_h == NULL || B_h == NULL) {
+    if (A_h == NULL || B_h == NULL ) {
         printf("Error in CPU Malloc!\n");
         exit(-1);
     }
@@ -61,7 +59,6 @@ int main(int argc, char **argv) {
     printf("Preparing dense data for GPU...\n");
     cudaMemcpy(A, A_h, sizeof(half) * M_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     cudaMemcpy(B, B_h, sizeof(half) * N_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
-
     checkLastCudaError(__LINE__);
 
     // CUBLAS
@@ -78,15 +75,10 @@ int main(int argc, char **argv) {
     cublasCreate(&handle);
     cublasSetStream(handle, 0);
 
-    // Tensor core not enabled
     int m = M_GLOBAL, n = N_GLOBAL, k = K_GLOBAL;
     const float alpha = 1.0;
     const float beta = 0.0;
     cublasGemmAlgo_t CuBlasALG = static_cast<cublasGemmAlgo_t>(0);
-    float milliseconds_cublas = 0;
-    cudaEventElapsedTime(&milliseconds_cublas, start, stop);
-    milliseconds_cublas = milliseconds_cublas / BENCHMARK_ITERATION;
-    float tflops_cublas = static_cast<double>((static_cast<double>(M_GLOBAL) * N_GLOBAL * K_GLOBAL * 2) / (milliseconds_cublas / 1000.)) / 1e12;
     // Tensor core enabled
     cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
     cudaDeviceSynchronize();
@@ -115,6 +107,8 @@ int main(int argc, char **argv) {
     cudaMemcpy(D_cublas_h, D_cublas, sizeof(half) * M_GLOBAL * N_GLOBAL, cudaMemcpyDeviceToHost); // Col Major
     cudaFree(D_cublas);
     /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    auto Split_K = SPLIT_K;
 
     // SpInfer
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -177,7 +171,9 @@ int main(int argc, char **argv) {
     free(bitmap_TileOffsets_global_cpu_v3);
     free(bitmap_TileOffsets_median_cpu_v3);
     printf("Done! Compressed A matrix for bitmap v3 GPU kernel.\n");
+
     printf("Launching bitmapv3 without Ahead of Time Sparse Data Reordering...\n");
+    Split_K = SPLIT_K;
     printf("Split_K = %d\n", Split_K);
     half *Reduction_Workspace_bitmapv3 = NULL;
     cudaMalloc(reinterpret_cast<void **>(&Reduction_Workspace_bitmapv3), sizeof(half) * M_GLOBAL * N_GLOBAL * Split_K);
@@ -225,16 +221,15 @@ int main(int argc, char **argv) {
     cudaFree(Compressed_Val_gpu_v3);
     cudaFree(Reduction_Workspace_bitmapv3);
     cudaFree(max_nnz_intilev3_gpu);
-    /////////////////////////////////////////////////////////////////////////////////////////////////
 
     double totalError_SpMM_bitmapv3 = 0.0;
 
     totalError_SpMM_bitmapv3 = ComputeTotalError(D_cublas_h, D_SpMM_hbitmapv3, M_GLOBAL, N_GLOBAL);
 
     free(D_SpMM_hbitmapv3);
-    PrintPerformance("CuBlas_TC", milliseconds_cublas_tc, tflops_cublas_tc, 0.0);
 
     PrintPerformance("SpInfer", milliseconds_SpMM_bitmapv3, tflops_SpMM_bitmapv3, totalError_SpMM_bitmapv3);
+    PrintPerformance("CuBlas_TC", milliseconds_cublas_tc, tflops_cublas_tc, 0.0);
 
     free(D_cublas_h);
     free(A_h);
