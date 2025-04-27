@@ -84,9 +84,9 @@ __host__ void init_host_matrices(half *a, half *b, int M_GLOBAL, int K_GLOBAL, i
             int r = rand() % 100;
             if (r >= MATRIX_A_PRUNING_PERCENTAGE)
 
-                // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
+                a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
 
-                a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
+            // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
 
             else
                 a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
@@ -496,6 +496,7 @@ int InitSparseMatrixA_bitmap_v6(half *A_h, int M, int K,
 
     return num_global_tiles;
 }
+
 void printBinary(uint64_t number) {
     for (int bit = 63; bit >= 0; --bit) {
         std::cout << ((number >> bit) & 1);
