@@ -38,7 +38,7 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
     TileOffsets_ThisBlock = TileOffsets + BlockOffset;
 
     const int *TileOffsets_ThisBlock_B = nullptr;
-    const int BlockOffset_B = K_Global / TILE_K * y;
+    const int BlockOffset_B = K_Global / TILE_K * x;
     TileOffsets_ThisBlock_B = TileOffsets_B + BlockOffset_B;
 
     ////////
@@ -50,7 +50,7 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
     // Warp and lane identification.
     const unsigned int warpId = threadIdx.x / WARP_SIZE;
     const int Tile_Start_M = y * TilingConfig::TILE_M;
-    const int Tile_Start_Bitmap = y * TilingConfig::TILE_BITMAP_M_V3;
+    const int Tile_Start_Bitmap = x * TilingConfig::TILE_BITMAP_M_V3;
     const int Tile_Start_N = x * TilingConfig::TILE_N;
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Compute a grid of C matrix tiles in each warp.
@@ -137,19 +137,22 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
         // }
         // __syncthreads();
 
- 
+        // if(threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0){
+        //     printf("tile_id_k: %d,\n", tile_id_k);
+        // }
         SpMM_LoadFragAwithBitmapFromShem(a, smem + TileOffsets_ThisWarp[(tile_id_k) * 4], smem_BitmapWarp, true);
         SpMM_LoadFragAwithBitmapFromShem_B(b_, smem_B_, smem_Bitmap_B, TileOffsets_ThisWarp, 0, true);
 
         PipelinedCoreComputationsBitmap<TilingConfig>(c, a, b, smem_B, warp_start_row, warp_start_col, smem_Bitmap_B, TileOffsets_ThisWarp_B,
                                                       tile_id_k, b_, smem_B_);
         BitmapTileGlobalPTR = BitmapTileGlobalPTR + TilingConfig::TILE_BITMAP_K_V3;
+        BitmapTileGlobalPTR_B = BitmapTileGlobalPTR_B + TilingConfig::TILE_BITMAP_K_V3;
         BTileGlobalPTR = BTileGlobalPTR + TILE_K;
         current_sparse_tile_start = TileOffsets_ThisBlock[tile_id_k + 1];
         current_sparse_tile_nnz = TileOffsets_ThisBlock[tile_id_k + 1 + 1] - TileOffsets_ThisBlock[tile_id_k + 1];
 
-        // current_sparse_tile_start_B = TileOffsets_ThisBlock_B[tile_id_k + 1];
-        // current_sparse_tile_nnz_B = TileOffsets_ThisBlock_B[tile_id_k + 1 + 1] - TileOffsets_ThisBlock_B[tile_id_k + 1];
+        current_sparse_tile_start_B = TileOffsets_ThisBlock_B[tile_id_k + 1];
+        current_sparse_tile_nnz_B = TileOffsets_ThisBlock_B[tile_id_k + 1 + 1] - TileOffsets_ThisBlock_B[tile_id_k + 1];
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

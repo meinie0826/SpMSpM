@@ -101,10 +101,6 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __re
         bias = 12;
     }
     if (Pred == true) {
-
-        if (threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
-            printf("-----------------------------------------------\n");
-        }
         half val1 = 0;
         half val2 = 0;
         for (int i = 0; i < 4; i++) {
@@ -250,6 +246,9 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
     uint32_t (*c_uint32_t)[REG_PER_C_TENSOR_16_16] = reinterpret_cast<uint32_t (*)[REG_PER_C_TENSOR_16_16]>(c);
     B_FragLoadFromSharedToRegisters<TilingConfig::WARP_COL_TENSORS, TilingConfig::N8>(b, SharedMemoryPTR, warp_start_col, 0);
     for (int k = 0; k < BLOCK_K_TENSORS; k++) {
+        // if (threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+        //     printf("k: %d,\n", k);
+        // }
         uint32_t __restrict__(*b_read)[4] = b;
         uint32_t __restrict__(*b_write)[4] = b;
         b_read += ((k) % 2) * TilingConfig::WARP_COL_TENSORS;
@@ -264,7 +263,8 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         __syncthreads();
 
         // // 添加调试信息
-        // if (threadIdx.x == 2 && blockIdx.x == 0 && blockIdx.y == 0) {
+        // // 
+        // if (threadIdx.x == 127&& blockIdx.x == 0 && blockIdx.y == 0) {
         //     printf("=== Debug Info ===\n");
         //     printf("Thread %d: warp_start_row=%d, warp_start_col=%d\n", threadIdx.x, warp_start_row, warp_start_col);
 
@@ -287,6 +287,16 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         //         printf("\n");
         //     }
 
+        //     printf("\n=== A_ matrix (4x4) ===\n");
+        //     printf("addr : %p\n", b_);
+        //     for (int i = 0; i < 4; i++) {
+        //         for (int j = 0; j < 4; j++) {
+        //             half2 val = *reinterpret_cast<half2 *>(&a[i][j]);
+        //             printf("%.2f %.2f\t", __half2float(val.x), __half2float(val.y));
+        //         }
+        //         printf("\n");
+        //     }
+
         // }
         // __syncthreads();
         // half error = 0;
@@ -303,32 +313,34 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
 
         __syncthreads();
 
-        // Calculate local error (use float for reduction)
-        float local_error = 0.0f;
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                half2 val = *reinterpret_cast<half2 *>(&b_read[i][j]);
-                half2 val_ = *reinterpret_cast<half2 *>(&b_[i][j]);
-                local_error += fabsf(__half2float(val.x) - __half2float(val_.x));
-                local_error += fabsf(__half2float(val.y) - __half2float(val_.y));
-            }
-        }
+        // // Calculate local error (use float for reduction)
+        // float local_error = 0.0f;
+        // for (int i = 0; i < 4; i++) {
+        //     for (int j = 0; j < 4; j++) {
+        //         half2 val = *reinterpret_cast<half2 *>(&b_read[i][j]);
+        //         half2 val_ = *reinterpret_cast<half2 *>(&b_[i][j]);
+        //         local_error += fabsf(__half2float(val.x) - __half2float(val_.x));
+        //         local_error += fabsf(__half2float(val.y) - __half2float(val_.y));
+        //     }
+        // }
 
         // Warp-level reduction using __shfl_down_sync
         // Sum errors across the warp
+        float local_error = 0.0f;
         unsigned mask = 0xffffffff; // Active threads mask for sync
         for (int offset = 16; offset > 0; offset /= 2) {
-             local_error += __shfl_down_sync(mask, local_error, offset);
+            local_error += __shfl_down_sync(mask, local_error, offset);
         }
 
         // Thread 0 of the warp holds the reduced sum
         int lane_id = threadIdx.x % 32;
         if (lane_id == 0) {
-             // Note: Printing from multiple warps concurrently can still lead to interleaved output.
-             // Consider adding warpId or blockIdx for better context if needed.
-             const unsigned int warpId = threadIdx.x / WARP_SIZE;
-             printf("Warp %u, Total Error: %f\n", warpId, local_error);
+            // Note: Printing from multiple warps concurrently can still lead to interleaved output.
+            // Consider adding warpId or blockIdx for better context if needed.
+            const unsigned int warpId = threadIdx.x / WARP_SIZE;
+            printf("blockidx %d, blockidy : %d, Warp %u, Total Error: %f\n", blockIdx.x, blockIdx.y, warpId, local_error);
         }
+
         __syncthreads();
 
         for (int j = 0; j < TilingConfig::WARP_COL_TENSORS; j++) {

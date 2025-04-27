@@ -83,13 +83,9 @@ __host__ void init_host_matrices(half *a, half *b, int M_GLOBAL, int K_GLOBAL, i
         for (int j = 0; j < K_GLOBAL; j++) {
             int r = rand() % 100;
             if (r >= MATRIX_A_PRUNING_PERCENTAGE)
-
                 a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
-
-            // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
-
-            else
-                a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
+                // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
+            else a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
             b[j + i * K_GLOBAL] = a[j + i * K_GLOBAL];
         }
     }
@@ -424,8 +420,8 @@ int InitSparseMatrixA_bitmap_v6(half *A_h, int M, int K,
                     for (int local_tile_m_group = 0; local_tile_m_group < tile_M_median / tile_M; local_tile_m_group += 2) {
                         for (int local_tile_k_group = 0; local_tile_k_group < tile_K_median / tile_K; local_tile_k_group += 2) {
                             // Process the 2x2 small tile groups in column-major order
-                            for (int i = 0; i < 2; ++i) {
-                                for (int j = 0; j < 2; ++j) {
+                            for (int j = 0; j < 2; ++j) {
+                                for (int i = 0; i < 2; ++i) {
                                     int local_tile_k = local_tile_k_group + j;
                                     int local_tile_m = local_tile_m_group + i;
 
