@@ -26,7 +26,7 @@ static void SpMM_SplitK_Kernel_Ex_bitmap_v3(cudaStream_t stream, const half *A, 
 
                                             half *Reduction_Workspace, const int M_Global, const int N_Global, const int K_Global, int Split_K) {
     // 13b: 2304
-    static int SHMEM_SZ = max((TilingConfig::TILE_N * TILE_K) * sizeof(half) * 2 + 2304 * sizeof(half) +
+    static int SHMEM_SZ = max(512 * 64 * sizeof(half) + (TilingConfig::TILE_N * TILE_K) * sizeof(half) * 2 + 2304 * sizeof(half) +
                                   (TilingConfig::TILE_BITMAP_M_V3 * TilingConfig::TILE_BITMAP_K_V3) * sizeof(uint64_t),
                               (TilingConfig::TILE_M + PADDING_SHARED_MEM_FOR_C) * TilingConfig::TILE_N * sizeof(float));
     cudaFuncSetAttribute(SpMM_Kernel_bitmap_v3<TilingConfig>, cudaFuncAttributeMaxDynamicSharedMemorySize, SHMEM_SZ);
@@ -34,6 +34,11 @@ static void SpMM_SplitK_Kernel_Ex_bitmap_v3(cudaStream_t stream, const half *A, 
     int dimM = M_Global * Split_K / TilingConfig::TILE_M;
     dim3 GridDim(dimN, dimM, 1); // Grid Size is increased due to SplitK for higher SM occupancy
     dim3 BlockDim(WARP_SIZE * TilingConfig::BLOCK_WARPS, 1, 1);
+    // 添加调试输出
+    
+    printf("GridDim: (%d, %d, %d)\n", GridDim.x, GridDim.y, GridDim.z);
+    printf("BlockDim: (%d, %d, %d)\n", BlockDim.x, BlockDim.y, BlockDim.z);
+
     SpMM_Kernel_bitmap_v3<TilingConfig><<<GridDim, BlockDim, SHMEM_SZ, stream>>>(
         A, Compressed_A, TileOffsets, TileOffsets_Median, bitmap, max_nnz_intile, B, Compressed_B, TileOffsets_B, TileOffsets_Median_B, bitmap_B,
         max_nnz_intile_B, Reduction_Workspace, M_Global, N_Global, K_Global, Split_K);
