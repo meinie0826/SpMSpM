@@ -24,9 +24,9 @@
 #define TTTTT 0
 int main(int argc, char **argv) {
 
-        // int M_GLOBAL = 8192;
-        // int K_GLOBAL = 8192;
-        // int N_GLOBAL = 1024;
+    // int M_GLOBAL = 8192;
+    // int K_GLOBAL = 8192;
+    // int N_GLOBAL = 1024;
 
     int M_GLOBAL = 64;
     int K_GLOBAL = 64;
@@ -65,14 +65,15 @@ int main(int argc, char **argv) {
     cudaMemcpy(A, A_h, sizeof(half) * M_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     cudaMemcpy(B, B_h, sizeof(half) * N_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     checkLastCudaError(__LINE__);
-          printf("\n=== A_h (64x64) ===\n");
-                for (int i = 0; i < 64; i++) {
-                    for (int j = 0; j < 64; j++) {
-                        printf("%.2f ", __half2float(A_h[i * 64 + j]));
-                        if(j % 16 == 15) printf("\n");
-                    }
-                    printf("\n");
-                }
+    printf("\n=== A_h (64x64) ===\n");
+    for (int i = 0; i < 64; i++) {
+        for (int j = 0; j < 64; j++) {
+            printf("%.2f ", __half2float(A_h[i * 64 + j]));
+            if (j % 16 == 15)
+                printf("\n");
+        }
+        printf("\n");
+    }
     // CUBLAS
     /////////////////////////////////////////////////////////////////////////////////////////////////
     printf("Launching CuBlas...\n");
@@ -143,9 +144,10 @@ int main(int argc, char **argv) {
     auto num_gtilesv3 =
         InitSparseMatrixA_bitmap_v6(A_h, M_GLOBAL, K_GLOBAL, 8, 16, 64, 8, 64, 64, &Compressed_Val_cpu_v3, &bitmap_TileOffsets_cpu_v3,
                                     &bitmap_TileOffsets_median_cpu_v3, &bitmap_TileOffsets_global_cpu_v3, &bitmap_cpu_v3, max_nnz_intilev3);
-    
-    print_bitmap_v3_results(Compressed_Val_cpu_v3, bitmap_TileOffsets_cpu_v3, bitmap_TileOffsets_global_cpu_v3, bitmap_cpu_v3, num_gtilesv3, num_gtilesv3, max_nnz_intilev3);
-    
+
+    print_bitmap_v3_results(Compressed_Val_cpu_v3, bitmap_TileOffsets_cpu_v3, bitmap_TileOffsets_global_cpu_v3, bitmap_cpu_v3, num_gtilesv3,
+                            num_gtilesv3, max_nnz_intilev3);
+
     auto local_tile_numv3 = 8 * 8;
     auto median_tile_numv3 = 4 * 1;
     auto num_ltilesv3 = num_gtilesv3 * local_tile_numv3;
@@ -198,8 +200,8 @@ int main(int argc, char **argv) {
 
     // Call the InitSparseMatrixA_bitmap_v6 function for B (notice B is K_GLOBAL x N_GLOBAL, in column-major order)
     auto B_num_gtilesv3 =
-        InitSparseMatrixA_bitmap_v6(B_h,K_GLOBAL,N_GLOBAL, 8, 16, 64, 8, 64, 64, &Compressed_B_cpu_v3, &B_bitmap_TileOffsets_cpu_v3,
-                                    &B_bitmap_TileOffsets_median_cpu_v3, &B_bitmap_TileOffsets_global_cpu_v3, &B_bitmap_cpu_v3, B_max_nnz_intilev3);
+        InitSparseMatrixA_bitmap_v6_B(B_h, K_GLOBAL, N_GLOBAL, 8, 16, 64, 8, 64, 64, &Compressed_B_cpu_v3, &B_bitmap_TileOffsets_cpu_v3,
+                                      &B_bitmap_TileOffsets_median_cpu_v3, &B_bitmap_TileOffsets_global_cpu_v3, &B_bitmap_cpu_v3, B_max_nnz_intilev3);
     auto B_local_tile_numv3 = 8 * 8;
     auto B_median_tile_numv3 = 4 * 1;
     auto B_num_ltilesv3 = B_num_gtilesv3 * B_local_tile_numv3;
