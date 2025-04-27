@@ -242,7 +242,7 @@ template <typename TilingConfig>
 __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PER_C_TENSOR_16_16], uint32_t __restrict__ a[][4],
                                                                 uint32_t __restrict__ b[][4], half *__restrict__ SharedMemoryPTR, int warp_start_row,
                                                                 int warp_start_col, uint64_t *smem_Bitmap_B, const int *TileOffsets_ThisWarp,
-                                                                int tile_id_k, uint32_t __restrict__ b_[][4], half *__restrict__ smem_B_) {
+                                                                int tile_id_k, uint32_t __restrict__ b_[][4], half *__restrict__ smem_B) {
     uint32_t (*c_uint32_t)[REG_PER_C_TENSOR_16_16] = reinterpret_cast<uint32_t (*)[REG_PER_C_TENSOR_16_16]>(c);
     B_FragLoadFromSharedToRegisters<TilingConfig::WARP_COL_TENSORS, TilingConfig::N8>(b, SharedMemoryPTR, warp_start_col, 0);
     for (int k = 0; k < BLOCK_K_TENSORS; k++) {
@@ -258,9 +258,9 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
             B_FragLoadFromSharedToRegisters<TilingConfig::WARP_COL_TENSORS, TilingConfig::N8>(b_write, SharedMemoryPTR, warp_start_col,
                                                                                               (k + 1) * MMA_K);
         }
-        SpMM_LoadFragAwithBitmapFromShem_B(b_, smem_B_, smem_Bitmap_B, TileOffsets_ThisWarp, k, true);
+        SpMM_LoadFragAwithBitmapFromShem_B(b_, smem_B, smem_Bitmap_B, TileOffsets_ThisWarp, k, true);
 
-        __syncthreads();
+        // __syncthreads();
 
         // // 添加调试信息
         // // 
@@ -311,7 +311,7 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         // printf("threadIdx.x : %d , Error: %f\n", threadIdx.x, __half2float(error));
         // __syncthreads();
 
-        __syncthreads();
+        // __syncthreads();
 
         // // Calculate local error (use float for reduction)
         // float local_error = 0.0f;
@@ -326,27 +326,27 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
 
         // Warp-level reduction using __shfl_down_sync
         // Sum errors across the warp
-        float local_error = 0.0f;
-        unsigned mask = 0xffffffff; // Active threads mask for sync
-        for (int offset = 16; offset > 0; offset /= 2) {
-            local_error += __shfl_down_sync(mask, local_error, offset);
-        }
+        // float local_error = 0.0f;
+        // unsigned mask = 0xffffffff; // Active threads mask for sync
+        // for (int offset = 16; offset > 0; offset /= 2) {
+        //     local_error += __shfl_down_sync(mask, local_error, offset);
+        // }
 
-        // Thread 0 of the warp holds the reduced sum
-        int lane_id = threadIdx.x % 32;
-        if (lane_id == 0) {
-            // Note: Printing from multiple warps concurrently can still lead to interleaved output.
-            // Consider adding warpId or blockIdx for better context if needed.
-            const unsigned int warpId = threadIdx.x / WARP_SIZE;
-            printf("blockidx %d, blockidy : %d, Warp %u, Total Error: %f\n", blockIdx.x, blockIdx.y, warpId, local_error);
-        }
+        // // Thread 0 of the warp holds the reduced sum
+        // int lane_id = threadIdx.x % 32;
+        // if (lane_id == 0) {
+        //     // Note: Printing from multiple warps concurrently can still lead to interleaved output.
+        //     // Consider adding warpId or blockIdx for better context if needed.
+        //     const unsigned int warpId = threadIdx.x / WARP_SIZE;
+        //     printf("blockidx %d, blockidy : %d, Warp %u, Total Error: %f\n", blockIdx.x, blockIdx.y, warpId, local_error);
+        // }
 
-        __syncthreads();
+        // __syncthreads();
 
         for (int j = 0; j < TilingConfig::WARP_COL_TENSORS; j++) {
-            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b_read[j]);
+            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b_[j]);
             if (!TilingConfig::N8)
-                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b_read[j] + 2); // c+4; b+2
+                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b_[j] + 2); // c+4; b+2
         }
     }
 }

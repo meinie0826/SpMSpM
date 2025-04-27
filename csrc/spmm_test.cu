@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
     // int K_GLOBAL = 8192;
     // int N_GLOBAL = 1024;
 
-    int M_GLOBAL = 128;
-    int K_GLOBAL = 128;
-    int N_GLOBAL = 128;
+    int M_GLOBAL = 8192;
+    int K_GLOBAL = 8192;
+    int N_GLOBAL = 8192;
     int MATRIX_A_PRUNING_PERCENTAGE = 50;
     int SPLIT_K = 1;
     cublasStatus_t cublas_status;
@@ -65,15 +65,15 @@ int main(int argc, char **argv) {
     cudaMemcpy(A, A_h, sizeof(half) * M_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     cudaMemcpy(B, B_h, sizeof(half) * N_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     checkLastCudaError(__LINE__);
-    printf("\n=== A_h (64x64) ===\n");
-    for (int i = 0; i < 64; i++) {
-        for (int j = 0; j < 64; j++) {
-            printf("%.2f ", __half2float(A_h[i * 64 + j]));
-            if (j % 16 == 15)
-                printf("\n");
-        }
-        printf("\n");
-    }
+//     printf("\n=== A_h (64x64) ===\n");
+//     for (int i = 0; i < 64; i++) {
+//         for (int j = 0; j < 64; j++) {
+//             printf("%.2f ", __half2float(A_h[i * 64 + j]));
+//             if (j % 16 == 15)
+//                 printf("\n");
+//         }
+//         printf("\n");
+//     }
     // CUBLAS
     /////////////////////////////////////////////////////////////////////////////////////////////////
     printf("Launching CuBlas...\n");
@@ -145,8 +145,8 @@ int main(int argc, char **argv) {
         InitSparseMatrixA_bitmap_v6(A_h, M_GLOBAL, K_GLOBAL, 8, 16, 64, 8, 64, 64, &Compressed_Val_cpu_v3, &bitmap_TileOffsets_cpu_v3,
                                     &bitmap_TileOffsets_median_cpu_v3, &bitmap_TileOffsets_global_cpu_v3, &bitmap_cpu_v3, max_nnz_intilev3);
 
-    print_bitmap_v3_results(Compressed_Val_cpu_v3, bitmap_TileOffsets_cpu_v3, bitmap_TileOffsets_global_cpu_v3, bitmap_cpu_v3, num_gtilesv3,
-                            num_gtilesv3, max_nnz_intilev3);
+//     print_bitmap_v3_results(Compressed_Val_cpu_v3, bitmap_TileOffsets_cpu_v3, bitmap_TileOffsets_global_cpu_v3, bitmap_cpu_v3, num_gtilesv3,
+//                             num_gtilesv3, max_nnz_intilev3);
 
     auto local_tile_numv3 = 8 * 8;
     auto median_tile_numv3 = 4 * 1;
