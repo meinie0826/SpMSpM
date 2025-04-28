@@ -131,7 +131,7 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __re
             }
         }
     }
-    __syncthreads();
+   // __syncthreads();
 }
 
 // New features: Copy size is X * 64, X can be any multiple to 8
@@ -192,27 +192,25 @@ __device__ __forceinline__ void CopyTileFromGlobalToShared_Sparse(half *__restri
             cp_async<16>(SharedPTR_Unit, GlobalPTR_Unit, Pred);
         }
     }
-
 }
-
 
 template <typename TilingConfig>
 __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PER_C_TENSOR_16_16], uint32_t __restrict__ a[][4],
                                                                 uint32_t __restrict__ b[][4], half *__restrict__ SharedMemoryPTR, int warp_start_row,
                                                                 int warp_start_col, uint64_t *smem_Bitmap_B) {
     uint32_t (*c_uint32_t)[REG_PER_C_TENSOR_16_16] = reinterpret_cast<uint32_t (*)[REG_PER_C_TENSOR_16_16]>(c);
-    //SpMM_LoadFragAwithBitmapFromShem_B(b, SharedMemoryPTR, smem_Bitmap_B, nullptr, 0, true);
-    #pragma unroll
+// SpMM_LoadFragAwithBitmapFromShem_B(b, SharedMemoryPTR, smem_Bitmap_B, nullptr, 0, true);
+#pragma unroll
     for (int k = 0; k < BLOCK_K_TENSORS; k++) {
-        uint32_t __restrict__(*b_read)[4] = b;
-        uint32_t __restrict__(*b_write)[4] = b;
-        b_read += ((k) % 2) * TilingConfig::WARP_COL_TENSORS;
-        b_write += ((k + 1) % 2) * TilingConfig::WARP_COL_TENSORS;
+        // uint32_t __restrict__(*b_read)[4] = b;
+        // uint32_t __restrict__(*b_write)[4] = b;
+        // b_read += ((k) % 2) * TilingConfig::WARP_COL_TENSORS;
+        // b_write += ((k + 1) % 2) * TilingConfig::WARP_COL_TENSORS;
         // data loading
-        if (k < BLOCK_K_TENSORS) {
-            SpMM_LoadFragAwithBitmapFromShem_B(b, SharedMemoryPTR, smem_Bitmap_B, nullptr, k, true);
-        }
-        #pragma unroll 
+        // if (k < BLOCK_K_TENSORS) {
+        SpMM_LoadFragAwithBitmapFromShem_B(b, SharedMemoryPTR, smem_Bitmap_B, nullptr, k, true);
+        // }
+#pragma unroll
         for (int j = 0; j < TilingConfig::WARP_COL_TENSORS; j++) {
             MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b[j]);
             if (!TilingConfig::N8)
@@ -440,7 +438,6 @@ __device__ __forceinline__ void StoreToSharedMemoryFromRegisterBitmapV3(float (*
             }
         }
     }
-    __syncthreads();
 }
 
 #endif

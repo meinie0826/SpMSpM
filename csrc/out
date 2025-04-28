@@ -1,13 +1,11 @@
 Preparing dense data for GPU...
 Launching CuBlas...
-num_global_tiles: 16384, bitmap v3 NNZ: 33613608, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2240 
+num_global_tiles: 331776, bitmap v3 NNZ: 680650056, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2240 
 Done! Compressed A matrix for bitmap v3 GPU kernel.
 Compressing B matrix...
-B num_global_tiles: 16384, bitmap v3 NNZ: 33613608, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2240 
+B num_global_tiles: 331776, bitmap v3 NNZ: 680650056, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2240 
 Done! Compressed B matrix for bitmap v3 GPU kernel.
 Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
 Split_K = 1
-GridDim: (128, 128, 1)
-BlockDim: (128, 1, 1)
-SpInfer    	 -> 		 Time/ms: 40.747 	 Performance/TFLOPs: 26.98 	 TotalError: 0.00
-CuBlas_TC  	 -> 		 Time/ms: 58.926 	 Performance/TFLOPs: 18.66 	 TotalError: 0.00
+SpInfer    	 -> 		 Time/ms: 2447.117 	 Performance/TFLOPs: 40.94 	 TotalError: 0.00
+CuBlas_TC  	 -> 		 Time/ms: 622.606 	 Performance/TFLOPs: 160.93 	 TotalError: 0.00

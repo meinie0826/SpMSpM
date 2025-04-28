@@ -43,9 +43,10 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
 
     ////////
     extern __shared__ __align__(128) half smem[]; // at least be 128 Bytes aligned
-    uint64_t *smem_Bitmap = reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + max_nnz_intile_B_ * 2]);
     half *smem_B = &smem[max_nnz_intile];
+    uint64_t *smem_Bitmap = reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + max_nnz_intile_B_ * 2]);
     uint64_t *smem_Bitmap_B = reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + max_nnz_intile_B_ * 2 + 512]);
+
     // Warp and lane identification.
     const unsigned int warpId = threadIdx.x / WARP_SIZE;
     const int Tile_Start_M = y * TilingConfig::TILE_M;
@@ -137,8 +138,10 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
         cp_async_group_commit();
 
         // copy B val and bitmap to shared memory
-        CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(smem_Bitmap_B_write_B_PTR, BitmapTileGlobalPTR_B, GlobalCopy);
-        CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_write_B_PTR, Compressed_B + current_sparse_tile_start_B, current_sparse_tile_nnz_B, GlobalCopy);
+        CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(smem_Bitmap_B_write_B_PTR, BitmapTileGlobalPTR_B,
+                                                                                             GlobalCopy);
+        CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_write_B_PTR, Compressed_B + current_sparse_tile_start_B, current_sparse_tile_nnz_B,
+                                                        GlobalCopy);
         cp_async_group_commit();
 
         PipelinedCoreComputationsBitmap<TilingConfig>(c, a, b_, smem_read_B_PTR, warp_start_row, warp_start_col, smem_Bitmap_B_read_B_PTR);
@@ -159,9 +162,9 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
 
     // Now that shared memory contains all the D tiles, stream them to global memory.
     half *BlockGlobalPTR = Reduction_Workspace + Tile_Start_M + Tile_Start_N * M_Global;
-    #pragma unroll
-    for (int i = warpId; i < TilingConfig::TILE_N2; i += TilingConfig::BLOCK_WARPS)    
-        #pragma unroll // i-th column
+#pragma unroll
+    for (int i = warpId; i < TilingConfig::TILE_N2; i += TilingConfig::BLOCK_WARPS)
+#pragma unroll
         for (int j = threadIdx.x % WARP_SIZE; j < TilingConfig::TILE_M; j += WARP_SIZE) // j-th row
             BlockGlobalPTR[j + i * M_Global] = __float2half_rn((*(smem_CFrag + i))[j]);
 }
