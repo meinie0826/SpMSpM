@@ -9,5 +9,5 @@ Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
 Split_K = 1
 GridDim: (128, 128, 1)
 BlockDim: (128, 1, 1)
-SpInfer    	 -> 		 Time/ms: 6491.220 	 Performance/TFLOPs: 0.17 	 TotalError: 0.00
-CuBlas_TC  	 -> 		 Time/ms: 59.463 	 Performance/TFLOPs: 18.49 	 TotalError: 0.00
+SpInfer    	 -> 		 Time/ms: 40.747 	 Performance/TFLOPs: 26.98 	 TotalError: 0.00
+CuBlas_TC  	 -> 		 Time/ms: 58.926 	 Performance/TFLOPs: 18.66 	 TotalError: 0.00
