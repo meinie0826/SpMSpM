@@ -7,5 +7,5 @@ B num_global_tiles: 331776, bitmap v3 NNZ: 680650056, bitmap v3 median layer NNZ
 Done! Compressed B matrix for bitmap v3 GPU kernel.
 Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
 Split_K = 1
-SpInfer    	 -> 		 Time/ms: 2934.953 	 Performance/TFLOPs: 34.14 	 TotalError: 0.00
-CuBlas_TC  	 -> 		 Time/ms: 620.824 	 Performance/TFLOPs: 161.39 	 TotalError: 0.00
+SpInfer    	 -> 		 Time/ms: 2937.277 	 Performance/TFLOPs: 34.11 	 TotalError: 0.00
+CuBlas_TC  	 -> 		 Time/ms: 618.992 	 Performance/TFLOPs: 161.86 	 TotalError: 0.00

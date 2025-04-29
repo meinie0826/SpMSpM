@@ -4,5 +4,6 @@
                 "random": "cpp",
                 "compare": "cpp",
                 "cstdint": "cpp"
-        }
+        },
+        "C_Cpp.errorSquiggles": "disabled"
 }
