@@ -55,11 +55,10 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem(uint32_t __rest
         }
     }
 }
-__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half **ShemVal,
+__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], half **ShemVal,
                                                                    const uint64_t *__restrict__ SharedBitmap, const int *TileOffsets_ThisWarp,
                                                                    int warpid, bool Pred = true) {
     int lane_id = threadIdx.x % 32;
-    int start_pos = 0;
     int j_start = warpid * 4;
     int j_end = (warpid + 1) * 4;
     if (Pred == true) {
@@ -142,22 +141,21 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
                                                                 uint32_t __restrict__ b[][4], half *SharedMemoryPTR, int warp_start_row,
                                                                 int warp_start_col, uint64_t *smem_Bitmap_B) {
     uint32_t (*c_uint32_t)[REG_PER_C_TENSOR_16_16] = reinterpret_cast<uint32_t (*)[REG_PER_C_TENSOR_16_16]>(c);
-// SpMM_LoadFragAwithBitmapFromShem_B(b, SharedMemoryPTR, smem_Bitmap_B, nullptr, 0, true);
+    SpMM_LoadFragAwithBitmapFromShem_B(b, &SharedMemoryPTR, smem_Bitmap_B, nullptr, 0, true);
 #pragma unroll
     for (int k = 0; k < BLOCK_K_TENSORS; k++) {
-        // uint32_t __restrict__(*b_read)[4] = b;
-        // uint32_t __restrict__(*b_write)[4] = b;
-        // b_read += ((k) % 2) * TilingConfig::WARP_COL_TENSORS;
-        // b_write += ((k + 1) % 2) * TilingConfig::WARP_COL_TENSORS;
-        // data loading
-        // if (k < BLOCK_K_TENSORS) {
-        SpMM_LoadFragAwithBitmapFromShem_B(b, &SharedMemoryPTR, smem_Bitmap_B, nullptr, k, true);
-        // }
+        uint32_t __restrict__(*b_read)[4] = b;
+        uint32_t __restrict__(*b_write)[4] = b;
+        b_read += ((k) % 2) * TilingConfig::WARP_COL_TENSORS;
+        b_write += ((k + 1) % 2) * TilingConfig::WARP_COL_TENSORS;
+        if (k + 1 < BLOCK_K_TENSORS) {
+            SpMM_LoadFragAwithBitmapFromShem_B(b_write, &SharedMemoryPTR, smem_Bitmap_B, nullptr, k + 1, true);
+        }
 #pragma unroll
         for (int j = 0; j < TilingConfig::WARP_COL_TENSORS; j++) {
-            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b[j]);
+            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b_read[j]);
             if (!TilingConfig::N8)
-                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b[j] + 2); // c+4; b+2
+                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b_read[j] + 2); // c+4; b+2
         }
     }
     // __syncthreads();

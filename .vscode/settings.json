@@ -1,8 +1,13 @@
 {
         "files.associations": {
-                "format": "cpp",
-                "random": "cpp",
-                "compare": "cpp",
-                "cstdint": "cpp"
+            "format": "cpp",
+            "random": "cpp",
+            "compare": "cpp",
+            "cstdint": "cpp",
+            "array": "cpp",
+            "string": "cpp",
+            "string_view": "cpp",
+            "ranges": "cpp",
+            "span": "cpp"
         }
 }

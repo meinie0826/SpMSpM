@@ -68,9 +68,8 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
     const int WarpOffset = BlockOffset * 4 + Warp_i;
     TileOffsets_ThisWarp = TileOffsets_Median + WarpOffset;
 
-    const int *TileOffsets_ThisWarp_B = TileOffsets_Median_B + WarpOffset;
+
     // gld addr of copying B tile from GlobalMemory to SharedMemory
-    const half *BTileGlobalPTR = B + Tile_Start_N * K_Global;
     const uint64_t *BitmapTileGlobalPTR = bitmap + Tile_Start_Bitmap * K_Global;
     const uint64_t *BitmapTileGlobalPTR_B = bitmap_B + Tile_Start_Bitmap_B * K_Global;
 
