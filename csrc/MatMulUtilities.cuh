@@ -55,83 +55,26 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem(uint32_t __rest
         }
     }
 }
-__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half *__restrict__ ShemVal,
+__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half **ShemVal,
                                                                    const uint64_t *__restrict__ SharedBitmap, const int *TileOffsets_ThisWarp,
                                                                    int warpid, bool Pred = true) {
     int lane_id = threadIdx.x % 32;
-
     int start_pos = 0;
-    if (warpid == 1) {
-        for (int k = 0; k < 4; k++) {
-            start_pos += __popcll(SharedBitmap[k]);
-        }
-    } else if (warpid == 2) {
-        for (int k = 0; k < 8; k++) {
-            start_pos += __popcll(SharedBitmap[k]);
-        }
-    } else if (warpid == 3) {
-        for (int k = 0; k < 12; k++) {
-            start_pos += __popcll(SharedBitmap[k]);
-        }
-    }
-    int j_start = 0;
-    int j_end = 4;
-    int bias = 0;
-    if (warpid == 0) {
-        j_start = 0;
-        j_end = 4;
-        bias = 0;
-    } else if (warpid == 1) {
-        j_start = 4;
-        j_end = 8;
-        bias = 4;
-    } else if (warpid == 2) {
-        j_start = 8;
-        j_end = 12;
-        bias = 8;
-    } else if (warpid == 3) {
-        j_start = 12;
-        j_end = 16;
-        bias = 12;
-    }
+    int j_start = warpid * 4;
+    int j_end = (warpid + 1) * 4;
     if (Pred == true) {
-        half val1 = 0;
-        half val2 = 0;
-        for (int i = 0; i < 4; i++) {
-            for (int j = j_start; j < j_end; j++) {
-                uint64_t bitmap = SharedBitmap[i * 16 + j];
-                half2 val_ = maskloadingv1(bitmap, ShemVal + start_pos, lane_id);
-                a[i][j - bias] = *reinterpret_cast<const uint32_t *>(&val_);
-
-                start_pos += __popcll(bitmap);
-            }
-
-            if (warpid == 0) {
-                for (int k = 4; k < 16; k++) {
-                    start_pos += __popcll(SharedBitmap[i * 16 + k]);
-                }
-            } else if (warpid == 1) {
-                for (int k = 8; k < 16; k++) {
-                    start_pos += __popcll(SharedBitmap[i * 16 + k]);
-                }
-                for (int k = 0; k < 4; k++) {
-                    start_pos += __popcll(SharedBitmap[(i + 1) * 16 + k]);
-                }
-            } else if (warpid == 2) {
-                for (int k = 12; k < 16; k++) {
-                    start_pos += __popcll(SharedBitmap[i * 16 + k]);
-                }
-                for (int k = 0; k < 8; k++) {
-                    start_pos += __popcll(SharedBitmap[(i + 1) * 16 + k]);
-                }
-            } else if (warpid == 3) {
-                for (int k = 0; k < 12; k++) {
-                    start_pos += __popcll(SharedBitmap[(i + 1) * 16 + k]);
-                }
+#pragma unroll
+        for (int i = j_start; i < j_end; i++) {
+#pragma unroll
+            for (int j = 0; j < 4; j++) {
+                uint64_t bitmap = SharedBitmap[i * 4 + j];
+                half2 val = maskloadingv1(bitmap, *ShemVal, lane_id);
+                a[i - j_start][j] = *reinterpret_cast<const uint32_t *>(&val);
+                *ShemVal += __popcll(bitmap);
             }
         }
     }
-   // __syncthreads();
+    // __syncthreads();
 }
 
 // New features: Copy size is X * 64, X can be any multiple to 8
@@ -196,7 +139,7 @@ __device__ __forceinline__ void CopyTileFromGlobalToShared_Sparse(half *__restri
 
 template <typename TilingConfig>
 __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PER_C_TENSOR_16_16], uint32_t __restrict__ a[][4],
-                                                                uint32_t __restrict__ b[][4], half *__restrict__ SharedMemoryPTR, int warp_start_row,
+                                                                uint32_t __restrict__ b[][4], half *SharedMemoryPTR, int warp_start_row,
                                                                 int warp_start_col, uint64_t *smem_Bitmap_B) {
     uint32_t (*c_uint32_t)[REG_PER_C_TENSOR_16_16] = reinterpret_cast<uint32_t (*)[REG_PER_C_TENSOR_16_16]>(c);
 // SpMM_LoadFragAwithBitmapFromShem_B(b, SharedMemoryPTR, smem_Bitmap_B, nullptr, 0, true);
@@ -208,7 +151,7 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         // b_write += ((k + 1) % 2) * TilingConfig::WARP_COL_TENSORS;
         // data loading
         // if (k < BLOCK_K_TENSORS) {
-        SpMM_LoadFragAwithBitmapFromShem_B(b, SharedMemoryPTR, smem_Bitmap_B, nullptr, k, true);
+        SpMM_LoadFragAwithBitmapFromShem_B(b, &SharedMemoryPTR, smem_Bitmap_B, nullptr, k, true);
         // }
 #pragma unroll
         for (int j = 0; j < TilingConfig::WARP_COL_TENSORS; j++) {

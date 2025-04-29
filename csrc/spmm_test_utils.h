@@ -84,8 +84,9 @@ __host__ void init_host_matrices(half *a, half *b, int M_GLOBAL, int K_GLOBAL, i
             int r = rand() % 100;
             if (r >= MATRIX_A_PRUNING_PERCENTAGE)
                 a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
-                // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
-            else a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
+            // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
+            else
+                a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
             b[j + i * K_GLOBAL] = a[j + i * K_GLOBAL];
         }
     }
@@ -412,8 +413,9 @@ int InitSparseMatrixA_bitmap_v6(half *A_h, int M, int K,
             int median_val_count = 0;
             (*TileOffsets_median)[median_offset_idx++] = 0; // The starting offset of each median tile is 0
             // Traverse the median tiles within the global tile (in row order)
-            for (int median_tile_m = 0; median_tile_m < tile_M_global / tile_M_median; ++median_tile_m) {
-                for (int median_tile_k = 0; median_tile_k < tile_K_global / tile_K_median; ++median_tile_k) {
+            for (int median_tile_k = 0; median_tile_k < tile_K_global / tile_K_median; ++median_tile_k) {
+                for (int median_tile_m = 0; median_tile_m < tile_M_global / tile_M_median; ++median_tile_m) {
+
                     int median_row_start = global_row_start + median_tile_m * tile_M_median;
                     int median_col_start = global_col_start + median_tile_k * tile_K_median;
                     // Process the 2x2 small tile groups within the median tile
@@ -568,8 +570,8 @@ int InitSparseMatrixA_bitmap_v6_B(half *A_h, int M, int K,
             int median_val_count = 0;
             (*TileOffsets_median)[median_offset_idx++] = 0; // The starting offset of each median tile is 0
             // Traverse the median tiles within the global tile (in row order)
-            for (int median_tile_m = 0; median_tile_m < tile_M_global / tile_M_median; ++median_tile_m) {
-                for (int median_tile_k = 0; median_tile_k < tile_K_global / tile_K_median; ++median_tile_k) {
+            for (int median_tile_k = 0; median_tile_k < tile_K_global / tile_K_median; ++median_tile_k) {
+                for (int median_tile_m = 0; median_tile_m < tile_M_global / tile_M_median; ++median_tile_m) {
                     int median_row_start = global_row_start + median_tile_m * tile_M_median;
                     int median_col_start = global_col_start + median_tile_k * tile_K_median;
                     // Process the 2x2 small tile groups within the median tile

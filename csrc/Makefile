@@ -13,7 +13,7 @@
 # host compiler
 HOST_COMPILER ?= g++
 CUDA_PATH ?= /usr/local/cuda
-NVCC          := $(CUDA_PATH)/bin/nvcc  -ccbin $(HOST_COMPILER)
+NVCC          := $(CUDA_PATH)/bin/nvcc -O3 -ccbin $(HOST_COMPILER)
 
 # internal flags
 NVCCFLAGS   := -m$(shell getconf LONG_BIT)
