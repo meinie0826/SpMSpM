@@ -62,8 +62,6 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __re
     int start_pos = 0;
     int j_start = 4 * (warpid);
     int j_end = 4 * (warpid + 1);
-    int bias = 0;
-
     if (Pred == true) {
 #pragma unroll
         for (int i = j_start; i < j_end; i++) {
@@ -71,7 +69,7 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __re
             for (int j = 0; j < 4; j++) {
                 uint64_t bitmap = SharedBitmap[i * 4 + j];
                 half2 val = maskloadingv1(bitmap, *ShemVal + start_pos, lane_id);
-                a[i - bias][j] = *reinterpret_cast<const uint32_t *>(&val);
+                a[i - j_start][j] = *reinterpret_cast<const uint32_t *>(&val);
                 *ShemVal += __popcll(bitmap);
             }
         }
