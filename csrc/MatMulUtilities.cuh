@@ -83,23 +83,9 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __re
     }
 
     if (Pred == true) {
-        half val1 = 0;
-        half val2 = 0;
         for (int i = j_start; i < j_end; i++) {
             for (int j = 0; j < 4; j++) {
                 uint64_t bitmap = SharedBitmap[i * 4 + j];
-                if ((bitmap & 1ULL) == 0)
-                    val1 = 0;
-                else
-                    val1 = *(*ShemVal + start_pos);
-                if ((bitmap & 2ULL) == 0)
-                    val2 = 0;
-                else if ((bitmap & 1ULL) == 0)
-                    val2 = *(*ShemVal + start_pos);
-                else
-                    val2 = *(*ShemVal + start_pos + 1);
-
-                half2 val = __halves2half2(val1, val2);
                 half2 val_ = maskloadingv1(bitmap, *ShemVal + start_pos, lane_id);
                 a[i-bias][j] = *reinterpret_cast<const uint32_t *>(&val_);
                 start_pos += __popcll(bitmap);
