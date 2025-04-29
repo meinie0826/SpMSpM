@@ -138,9 +138,7 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
         // }
         // __syncthreads();
 
-        // if(threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0){
-        //     printf("tile_id_k: %d,\n", tile_id_k);
-        // }
+
         SpMM_LoadFragAwithBitmapFromShem(a, smem + TileOffsets_ThisWarp[(tile_id_k) * 4], smem_BitmapWarp, true);
         //SpMM_LoadFragAwithBitmapFromShem_B(b_, smem_B_, smem_Bitmap_B, TileOffsets_ThisWarp, 0, true);
 

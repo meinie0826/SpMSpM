@@ -87,22 +87,22 @@ __host__ void init_host_matrices(half *a, half *b, int M_GLOBAL, int K_GLOBAL, i
                 // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
             else
                 a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
-            b[j + i * K_GLOBAL] = a[j + i * K_GLOBAL];
+            // b[j + i * K_GLOBAL] = a[j + i * K_GLOBAL];
         }
     }
-    // for (int i = 0; i < K_GLOBAL; i++) {
-    //     for (int j = 0; j < N_GLOBAL; j++) {
-    //         int r = rand() % 100;
-    //         if (r >= MATRIX_A_PRUNING_PERCENTAGE)
+    for (int i = 0; i < K_GLOBAL; i++) {
+        for (int j = 0; j < N_GLOBAL; j++) {
+            int r = rand() % 100;
+            if (r >= MATRIX_A_PRUNING_PERCENTAGE)
 
-    //             // b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
+                b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
 
-    //             b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>(10 * i + 0.01 * j));
+                // b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>(10 * i + 0.01 * j));
 
-    //         else
-    //             b[j + i * N_GLOBAL] = __float2half_rn(0.0f);
-    //     }
-    // }
+            else
+                b[j + i * N_GLOBAL] = __float2half_rn(0.0f);
+        }
+    }
     // for (int i = 0; i < N_GLOBAL * K_GLOBAL; i++)
     //     b[i] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
 }

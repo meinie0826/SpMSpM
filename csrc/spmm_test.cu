@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
     // int K_GLOBAL = 8192;
     // int N_GLOBAL = 1024;
 
-    int M_GLOBAL = 36864;
-    int K_GLOBAL = 36864;
-    int N_GLOBAL = 36864;
+    int M_GLOBAL = 128;
+    int K_GLOBAL = 128;
+    int N_GLOBAL = 1024;
     int MATRIX_A_PRUNING_PERCENTAGE = 50;
     int SPLIT_K = 1;
     cublasStatus_t cublas_status;
