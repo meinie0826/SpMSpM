@@ -1,0 +1,46 @@
+__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half *__restrict__ ShemVal,
+                                                                   const uint64_t *__restrict__ SharedBitmap, const int *TileOffsets_ThisWarp,
+                                                                   int warpid, bool Pred = true) {
+    int lane_id = threadIdx.x % 32;
+    
+    // 预计算所有位图的计数
+    int bitmap_counts[64]; // 假设最多需要64个位图计数
+    
+    if (lane_id < 64) {
+        bitmap_counts[lane_id] = (lane_id < 64) ? __popcll(SharedBitmap[lane_id]) : 0;
+    }
+    __syncwarp();
+    
+    // 计算起始位置
+    int start_pos = 0;
+    if (warpid > 0) {
+        const int count_limits[3] = {4, 8, 12};
+        const int limit = count_limits[warpid-1];
+        
+        for (int k = 0; k < limit; k++) {
+            start_pos += bitmap_counts[k];
+        }
+    }
+    
+    // 设置每个warp处理的范围
+    const int j_start = warpid * 4;
+    const int j_end = j_start + 4;
+    const int bias = j_start;
+    
+    if (Pred) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = j_start; j < j_end; j++) {
+                int bitmap_idx = i * 16 + j;
+                uint64_t bitmap = SharedBitmap[bitmap_idx];
+                half2 val_ = maskloadingv1(bitmap, ShemVal + start_pos, lane_id);
+                a[i][j - bias] = *reinterpret_cast<const uint32_t *>(&val_);
+                
+                start_pos += bitmap_counts[bitmap_idx];
+            }
+            
+            // 使用预计算的计数跳过不需要处理的位置
+            // 这里可以根据warpid直接计算需要跳过哪些位置
+            // ...
+        }
+    }
+}

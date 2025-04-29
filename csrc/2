@@ -1,0 +1,69 @@
+__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half *__restrict__ ShemVal,
+                                                                   const uint64_t *__restrict__ SharedBitmap, const int *TileOffsets_ThisWarp,
+                                                                   int warpid, bool Pred = true) {
+    int lane_id = threadIdx.x % 32;
+    
+    // 使用查找表或直接计算替代分支
+    // 预计算每个warp的起始偏移量和范围
+    const int warp_offsets[4] = {0, 4, 8, 12};
+    const int j_start = warp_offsets[warpid];
+    const int j_end = j_start + 4;
+    const int bias = j_start;
+    
+    // 预计算start_pos的初始值
+    int start_pos = 0;
+    if (warpid > 0) {
+        const int count_limits[3] = {4, 8, 12};
+        const int limit = count_limits[warpid-1];
+        
+        // 使用循环展开减少分支
+        #pragma unroll
+        for (int k = 0; k < limit; k++) {
+            start_pos += __popcll(SharedBitmap[k]);
+        }
+    }
+    
+    if (Pred) {
+        // 移除未使用的变量
+        // half val1 = 0;
+        // half val2 = 0;
+        
+        #pragma unroll
+        for (int i = 0; i < 4; i++) {
+            #pragma unroll
+            for (int j = j_start; j < j_end; j++) {
+                uint64_t bitmap = SharedBitmap[i * 16 + j];
+                half2 val_ = maskloadingv1(bitmap, ShemVal + start_pos, lane_id);
+                a[i][j - bias] = *reinterpret_cast<const uint32_t *>(&val_);
+                
+                start_pos += __popcll(bitmap);
+            }
+            
+            // 使用查找表或计算公式替代分支逻辑
+            // 计算需要跳过的位置数量
+            int skip_start, skip_end;
+            if (warpid == 0) {
+                skip_start = 4;
+                skip_end = 16;
+            } else if (warpid == 1) {
+                skip_start = 8;
+                skip_end = 16 + 4;
+            } else if (warpid == 2) {
+                skip_start = 12;
+                skip_end = 16 + 8;
+            } else { // warpid == 3
+                skip_start = 0;
+                skip_end = 12;
+            }
+            
+            // 计算需要跳过的位置
+            int next_i = (warpid == 3) ? i + 1 : i;
+            
+            #pragma unroll
+            for (int k = skip_start; k < skip_end; k++) {
+                int bitmap_idx = (k < 16) ? (i * 16 + k) : ((i + 1) * 16 + (k - 16));
+                start_pos += __popcll(SharedBitmap[bitmap_idx]);
+            }
+        }
+    }
+}

@@ -1,0 +1,76 @@
+__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half *__restrict__ ShemVal,
+                                                                   const uint64_t *__restrict__ SharedBitmap, const int *TileOffsets_ThisWarp,
+                                                                   int warpid, bool Pred = true) {
+    int lane_id = threadIdx.x % 32;
+    
+    // 使用共享内存缓存位图计数
+    __shared__ int smem_bitmap_counts[64]; // 假设最多需要64个位图计数
+    
+    // 协作加载位图计数到共享内存
+    for (int i = threadIdx.x; i < 64; i += blockDim.x) {
+        if (i < 64) {
+            smem_bitmap_counts[i] = __popcll(SharedBitmap[i]);
+        }
+    }
+    __syncthreads();
+    
+    // 计算起始位置
+    int start_pos = 0;
+    if (warpid > 0) {
+        for (int k = 0; k < warpid * 4; k++) {
+            start_pos += smem_bitmap_counts[k];
+        }
+    }
+    
+    // 设置每个warp处理的范围
+    const int j_start = warpid * 4;
+    const int j_end = j_start + 4;
+    const int bias = j_start;
+    
+    if (Pred) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = j_start; j < j_end; j++) {
+                int bitmap_idx = i * 16 + j;
+                uint64_t bitmap = SharedBitmap[bitmap_idx];
+                half2 val_ = maskloadingv1(bitmap, ShemVal + start_pos, lane_id);
+                a[i][j - bias] = *reinterpret_cast<const uint32_t *>(&val_);
+                
+                start_pos += smem_bitmap_counts[bitmap_idx];
+            }
+            
+            // 使用预计算的计数跳过不需要处理的位置
+            int skip_indices[12]; // 最多需要跳过12个位置
+            int skip_count = 0;
+            
+            // 根据warpid确定需要跳过的位置
+            if (warpid == 0) {
+                for (int k = 4; k < 16; k++) {
+                    skip_indices[skip_count++] = i * 16 + k;
+                }
+            } else if (warpid == 1) {
+                for (int k = 8; k < 16; k++) {
+                    skip_indices[skip_count++] = i * 16 + k;
+                }
+                for (int k = 0; k < 4; k++) {
+                    skip_indices[skip_count++] = (i + 1) * 16 + k;
+                }
+            } else if (warpid == 2) {
+                for (int k = 12; k < 16; k++) {
+                    skip_indices[skip_count++] = i * 16 + k;
+                }
+                for (int k = 0; k < 8; k++) {
+                    skip_indices[skip_count++] = (i + 1) * 16 + k;
+                }
+            } else { // warpid == 3
+                for (int k = 0; k < 12; k++) {
+                    skip_indices[skip_count++] = (i + 1) * 16 + k;
+                }
+            }
+            
+            // 累加需要跳过的位置的计数
+            for (int k = 0; k < skip_count; k++) {
+                start_pos += smem_bitmap_counts[skip_indices[k]];
+            }
+        }
+    }
+}

@@ -65,15 +65,15 @@ int main(int argc, char **argv) {
     cudaMemcpy(A, A_h, sizeof(half) * M_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     cudaMemcpy(B, B_h, sizeof(half) * N_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     checkLastCudaError(__LINE__);
-//     printf("\n=== A_h (64x64) ===\n");
-//     for (int i = 0; i < 64; i++) {
-//         for (int j = 0; j < 64; j++) {
-//             printf("%.2f ", __half2float(A_h[i * 64 + j]));
-//             if (j % 16 == 15)
-//                 printf("\n");
-//         }
-//         printf("\n");
-//     }
+    printf("\n=== B_h (64x64) ===\n");
+    for (int i = 0; i < 64; i++) {
+        for (int j = 0; j < 64; j++) {
+            printf("%.2f ", __half2float(B_h[i * 64 + j]));
+            if (j % 16 == 15)
+                printf("\n");
+        }
+        printf("\n");
+    }
     // CUBLAS
     /////////////////////////////////////////////////////////////////////////////////////////////////
     printf("Launching CuBlas...\n");
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
 
     // Call the InitSparseMatrixA_bitmap_v6 function for B (notice B is K_GLOBAL x N_GLOBAL, in column-major order)
     auto B_num_gtilesv3 =
-        InitSparseMatrixA_bitmap_v6_B(B_h, K_GLOBAL, N_GLOBAL, 8, 16, 64, 8, 64, 64, &Compressed_B_cpu_v3, &B_bitmap_TileOffsets_cpu_v3,
+        InitSparseMatrixA_bitmap_v6_B(B_h, K_GLOBAL, N_GLOBAL, 8, 16, 64, 8, 16, 64, &Compressed_B_cpu_v3, &B_bitmap_TileOffsets_cpu_v3,
                                       &B_bitmap_TileOffsets_median_cpu_v3, &B_bitmap_TileOffsets_global_cpu_v3, &B_bitmap_cpu_v3, B_max_nnz_intilev3);
     auto B_local_tile_numv3 = 8 * 8;
     auto B_median_tile_numv3 = 4 * 1;

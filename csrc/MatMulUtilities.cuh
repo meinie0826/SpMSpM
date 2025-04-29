@@ -55,31 +55,12 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem(uint32_t __rest
         }
     }
 }
-__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half *__restrict__ ShemVal,
+__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4],  half ** ShemVal,
                                                                    const uint64_t *__restrict__ SharedBitmap, const int *TileOffsets_ThisWarp,
                                                                    int warpid, bool Pred = true) {
     int lane_id = threadIdx.x % 32;
-    // if(threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
-    //     printf("a addr : %p\n", a);
-    //     printf("ShemVal addr : %p\n", ShemVal);
-    //     printf("SharedBitmap addr : %p\n", SharedBitmap);
-    //     printf("warpid : %d\n", warpid);
-    //     }
-
     int start_pos = 0;
-    if (warpid == 1) {
-        for (int k = 0; k < 4; k++) {
-            start_pos += __popcll(SharedBitmap[k]);
-        }
-    } else if (warpid == 2) {
-        for (int k = 0; k < 8; k++) {
-            start_pos += __popcll(SharedBitmap[k]);
-        }
-    } else if (warpid == 3) {
-        for (int k = 0; k < 12; k++) {
-            start_pos += __popcll(SharedBitmap[k]);
-        }
-    }
+
     int j_start = 0;
     int j_end = 4;
     int bias = 0;
@@ -100,60 +81,32 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __re
         j_end = 16;
         bias = 12;
     }
+
     if (Pred == true) {
         half val1 = 0;
         half val2 = 0;
-        for (int i = 0; i < 4; i++) {
-            for (int j = j_start; j < j_end; j++) {
-                uint64_t bitmap = SharedBitmap[i * 16 + j];
+        for (int i = j_start; i < j_end; i++) {
+            for (int j = 0; j < 4; j++) {
+                uint64_t bitmap = SharedBitmap[i * 4 + j];
                 if ((bitmap & 1ULL) == 0)
                     val1 = 0;
                 else
-                    val1 = *(ShemVal + start_pos);
+                    val1 = *(*ShemVal + start_pos);
                 if ((bitmap & 2ULL) == 0)
                     val2 = 0;
                 else if ((bitmap & 1ULL) == 0)
-                    val2 = *(ShemVal + start_pos);
+                    val2 = *(*ShemVal + start_pos);
                 else
-                    val2 = *(ShemVal + start_pos + 1);
+                    val2 = *(*ShemVal + start_pos + 1);
 
                 half2 val = __halves2half2(val1, val2);
-                half2 val_ = maskloadingv1(bitmap, ShemVal + start_pos, lane_id);
-                a[i][j - bias] = *reinterpret_cast<const uint32_t *>(&val_);
-                // if(threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
-                //     printf("addr : %p, a[%d][%d] = %f\n",a, i, j, __half2float(val1));
-                //     printf("addr : %p,a[%d][%d] = %f\n",a, i, j + 1, __half2float(val2));
-                // }
+                half2 val_ = maskloadingv1(bitmap, *ShemVal + start_pos, lane_id);
+                a[i-bias][j] = *reinterpret_cast<const uint32_t *>(&val_);
                 start_pos += __popcll(bitmap);
-            }
-            // for (int k = 4; k < 16; k++) {
-            //     start_pos += __popcll(SharedBitmap[i * 16 + k]);
-            // }
-            if (warpid == 0) {
-                for (int k = 4; k < 16; k++) {
-                    start_pos += __popcll(SharedBitmap[i * 16 + k]);
-                }
-            } else if (warpid == 1) {
-                for (int k = 8; k < 16; k++) {
-                    start_pos += __popcll(SharedBitmap[i * 16 + k]);
-                }
-                for (int k = 0; k < 4; k++) {
-                    start_pos += __popcll(SharedBitmap[(i + 1) * 16 + k]);
-                }
-            } else if (warpid == 2) {
-                for (int k = 12; k < 16; k++) {
-                    start_pos += __popcll(SharedBitmap[i * 16 + k]);
-                }
-                for (int k = 0; k < 8; k++) {
-                    start_pos += __popcll(SharedBitmap[(i + 1) * 16 + k]);
-                }
-            } else if (warpid == 3) {
-                for (int k = 0; k < 12; k++) {
-                    start_pos += __popcll(SharedBitmap[(i + 1) * 16 + k]);
-                }
             }
         }
     }
+    *ShemVal += start_pos;
     __syncthreads();
 }
 
@@ -242,7 +195,7 @@ template <typename TilingConfig>
 __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PER_C_TENSOR_16_16], uint32_t __restrict__ a[][4],
                                                                 uint32_t __restrict__ b[][4], half *__restrict__ SharedMemoryPTR, int warp_start_row,
                                                                 int warp_start_col, uint64_t *smem_Bitmap_B, const int *TileOffsets_ThisWarp,
-                                                                int tile_id_k, uint32_t __restrict__ b_[][4], half *__restrict__ smem_B) {
+                                                                int tile_id_k, uint32_t __restrict__ b_[][4], half * smem_B) {
     uint32_t (*c_uint32_t)[REG_PER_C_TENSOR_16_16] = reinterpret_cast<uint32_t (*)[REG_PER_C_TENSOR_16_16]>(c);
     B_FragLoadFromSharedToRegisters<TilingConfig::WARP_COL_TENSORS, TilingConfig::N8>(b, SharedMemoryPTR, warp_start_col, 0);
     for (int k = 0; k < BLOCK_K_TENSORS; k++) {
@@ -258,16 +211,15 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
             B_FragLoadFromSharedToRegisters<TilingConfig::WARP_COL_TENSORS, TilingConfig::N8>(b_write, SharedMemoryPTR, warp_start_col,
                                                                                               (k + 1) * MMA_K);
         }
-        SpMM_LoadFragAwithBitmapFromShem_B(b_, smem_B, smem_Bitmap_B, TileOffsets_ThisWarp, k, true);
+        SpMM_LoadFragAwithBitmapFromShem_B(b_, &smem_B, smem_Bitmap_B, TileOffsets_ThisWarp, k, true);
 
         // __syncthreads();
 
-        // // 添加调试信息
-        // // 
-        // if (threadIdx.x == 127&& blockIdx.x == 0 && blockIdx.y == 0) {
+        // // // 添加调试信息
+        // // // 
+        // if (threadIdx.x == 0&& blockIdx.x == 0 && blockIdx.y == 0) {
         //     printf("=== Debug Info ===\n");
         //     printf("Thread %d: warp_start_row=%d, warp_start_col=%d\n", threadIdx.x, warp_start_row, warp_start_col);
-
         //     printf("\n=== b_read matrix (4x4) ===\n");
         //     for (int i = 0; i < 4; i++) {
         //         for (int j = 0; j < 4; j++) {
@@ -278,7 +230,6 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         //     }
 
         //     printf("\n=== b_ matrix (4x4) ===\n");
-        //     printf("addr : %p\n", b_);
         //     for (int i = 0; i < 4; i++) {
         //         for (int j = 0; j < 4; j++) {
         //             half2 val = *reinterpret_cast<half2 *>(&b_[i][j]);
@@ -288,7 +239,6 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         //     }
 
         //     printf("\n=== A_ matrix (4x4) ===\n");
-        //     printf("addr : %p\n", b_);
         //     for (int i = 0; i < 4; i++) {
         //         for (int j = 0; j < 4; j++) {
         //             half2 val = *reinterpret_cast<half2 *>(&a[i][j]);
@@ -324,9 +274,7 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         //     }
         // }
 
-        // Warp-level reduction using __shfl_down_sync
-        // Sum errors across the warp
-        // float local_error = 0.0f;
+
         // unsigned mask = 0xffffffff; // Active threads mask for sync
         // for (int offset = 16; offset > 0; offset /= 2) {
         //     local_error += __shfl_down_sync(mask, local_error, offset);
@@ -344,9 +292,9 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         // __syncthreads();
 
         for (int j = 0; j < TilingConfig::WARP_COL_TENSORS; j++) {
-            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b_[j]);
+            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b_read[j]);
             if (!TilingConfig::N8)
-                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b_[j] + 2); // c+4; b+2
+                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b_read[j] + 2); // c+4; b+2
         }
     }
 }

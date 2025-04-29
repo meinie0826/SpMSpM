@@ -1,0 +1,36 @@
+__device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __restrict__ a[][4], const half *__restrict__ ShemVal,
+                                                                   const uint64_t *__restrict__ SharedBitmap, const int *TileOffsets_ThisWarp,
+                                                                   int warpid, bool Pred = true) {
+    int lane_id = threadIdx.x % 32;
+    
+    // 使用共享内存存储位图计数的前缀和
+    __shared__ int smem_bitmap_prefix_sum[65]; // 多一个元素用于前缀和
+    
+    // 协作计算前缀和
+    if (threadIdx.x == 0) {
+        smem_bitmap_prefix_sum[0] = 0;
+        for (int i = 0; i < 64; i++) {
+            smem_bitmap_prefix_sum[i+1] = smem_bitmap_prefix_sum[i] + __popcll(SharedBitmap[i]);
+        }
+    }
+    __syncthreads();
+    
+    // 设置每个warp处理的范围
+    const int j_start = warpid * 4;
+    const int j_end = j_start + 4;
+    const int bias = j_start;
+    
+    if (Pred) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = j_start; j < j_end; j++) {
+                int bitmap_idx = i * 16 + j;
+                uint64_t bitmap = SharedBitmap[bitmap_idx];
+                
+                // 使用前缀和直接获取起始位置
+                int pos = smem_bitmap_prefix_sum[bitmap_idx];
+                half2 val_ = maskloadingv1(bitmap, ShemVal + pos, lane_id);
+                a[i][j - bias] = *reinterpret_cast<const uint32_t *>(&val_);
+            }
+        }
+    }
+}

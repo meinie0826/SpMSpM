@@ -45,7 +45,7 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
     extern __shared__ __align__(128) half smem[]; // at least be 128 Bytes aligned
     uint64_t *smem_Bitmap = reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + (TILE_K * TilingConfig::TILE_N)]);
     half *smem_B = &smem[max_nnz_intile];
-    half *smem_B_ = &smem[max_nnz_intile + (TILE_K * TilingConfig::TILE_N) + 4 * 16 * 4];
+    half *smem_B_ = &smem[max_nnz_intile + (TILE_K * TilingConfig::TILE_N) + 512];
     uint64_t *smem_Bitmap_B = reinterpret_cast<uint64_t *>(&smem_B_[max_nnz_intile_B_]);
     // Warp and lane identification.
     const unsigned int warpId = threadIdx.x / WARP_SIZE;
@@ -60,7 +60,7 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
     int warp_start_row = WARP_ROW_TENSORS_BITMAP_V3 * MMA_M * Warp_i;
     int warp_start_col = TilingConfig::WARP_COL_TENSORS * MMA_N * Warp_j;
     uint32_t __restrict__ a[WARP_ROW_TENSORS_BITMAP_V3 * BLOCK_K_TENSORS][4];
-    //     uint32_t __restrict__ b[TilingConfig::WARP_COL_TENSORS * 2][4];
+    uint32_t __restrict__ b[TilingConfig::WARP_COL_TENSORS * 2][4];
     uint32_t __restrict__ b_[TilingConfig::WARP_COL_TENSORS * 2][4];
     uint64_t *smem_BitmapWarp = smem_Bitmap + Warp_i * 16;
     //     uint64_t *smem_BitmapWarp_B = smem_Bitmap + Warp_i * 16;
@@ -95,57 +95,57 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
             smem_Bitmap, BitmapTileGlobalPTR, true); // Load the 2*8 bitmap after the double buffer B shared tile
 
         // Copying next B Tile to write shem
-        // CopyTileFromGlobalToShared_X_64<TilingConfig::TILE_N2, TilingConfig>(smem_B, BTileGlobalPTR, K_Global, true);
+        CopyTileFromGlobalToShared_X_64<TilingConfig::TILE_N2, TilingConfig>(smem_B, BTileGlobalPTR, K_Global, true);
 
         CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(
             smem_Bitmap_B, BitmapTileGlobalPTR_B, true); // Load the 2*8 bitmap after the double buffer B shared tile
 
         // Copying next Sparse A Tile to write shem
         CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem, Compressed_A + current_sparse_tile_start, current_sparse_tile_nnz, true);
-        CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_B, Compressed_B + current_sparse_tile_start_B, current_sparse_tile_nnz_B, true);
-
+        CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_B_, Compressed_B + current_sparse_tile_start_B, current_sparse_tile_nnz_B, true);
+        __syncthreads();
         // // 添加调试打印
-        // if (threadIdx.x == 16 && blockIdx.x == 0 && blockIdx.y == 0) {
-        //     printf("\n=== smem_B (64x64) ===\n");
-        //     for (int i = 0; i < 64; i++) {
-        //         for (int j = 0; j < 64; j++) {
-        //             printf("%.2f ", __half2float(smem_B[i * 64 + j]));
-        //             if (j % 16 == 15)
-        //                 printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
+        if (threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+            printf("\n=== smem_B (64x64) ===\n");
+            for (int i = 0; i < 64; i++) {
+                for (int j = 0; j < 64; j++) {
+                    printf("%.2f ", __half2float(smem_B[i * 64 + j]));
+                    if (j % 16 == 15)
+                        printf("\n");
+                }
+                printf("\n");
+            }
 
-        //     printf("\n=== smem_+++_ (64x64) ===\n");
-        //     for (int i = 0; i < 64; i++) {
-        //         for (int j = 0; j < 64; j++) {
-        //             printf("%.2f ", __half2float(smem_B_[i * 64 + j]));
-        //             if (j % 16 == 15)
-        //                 printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
+            printf("\n=== smem_+++_ (64x64) ===\n");
+            for (int i = 0; i < 64; i++) {
+                for (int j = 0; j < 64; j++) {
+                    printf("%.2f ", __half2float(smem_B_[i * 64 + j]));
+                    if (j % 16 == 15)
+                        printf("\n");
+                }
+                printf("\n");
+            }
 
-        //     printf("\n=== smem_A (64x64) ===\n");
-        //     for (int i = 0; i < 64; i++) {
-        //         for (int j = 0; j < 64; j++) {
-        //             printf("%.2f ", __half2float(smem[i * 64 + j]));
-        //             if (j % 16 == 15)
-        //                 printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
-        // }
-        // __syncthreads();
+            printf("\n=== smem_A (64x64) ===\n");
+            for (int i = 0; i < 64; i++) {
+                for (int j = 0; j < 64; j++) {
+                    printf("%.2f ", __half2float(smem[i * 64 + j]));
+                    if (j % 16 == 15)
+                        printf("\n");
+                }
+                printf("\n");
+            }
+        }
+        __syncthreads();
 
         // if(threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0){
         //     printf("tile_id_k: %d,\n", tile_id_k);
         // }
         SpMM_LoadFragAwithBitmapFromShem(a, smem + TileOffsets_ThisWarp[(tile_id_k) * 4], smem_BitmapWarp, true);
-        SpMM_LoadFragAwithBitmapFromShem_B(b_, smem_B, smem_Bitmap_B, TileOffsets_ThisWarp, 0, true);
+        //SpMM_LoadFragAwithBitmapFromShem_B(b_, smem_B_, smem_Bitmap_B, TileOffsets_ThisWarp, 0, true);
 
-        PipelinedCoreComputationsBitmap<TilingConfig>(c, a, b_, smem_B, warp_start_row, warp_start_col, smem_Bitmap_B, TileOffsets_ThisWarp_B,
-                                                      tile_id_k, b_, smem_B);
+        PipelinedCoreComputationsBitmap<TilingConfig>(c, a, b, smem_B, warp_start_row, warp_start_col, smem_Bitmap_B, TileOffsets_ThisWarp_B,
+                                                      tile_id_k, b_, smem_B_);
         BitmapTileGlobalPTR = BitmapTileGlobalPTR + TilingConfig::TILE_BITMAP_K_V3;
         BitmapTileGlobalPTR_B = BitmapTileGlobalPTR_B + TilingConfig::TILE_BITMAP_K_V3;
         BTileGlobalPTR = BTileGlobalPTR + TILE_K;
