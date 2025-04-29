@@ -83,8 +83,8 @@ __host__ void init_host_matrices(half *a, half *b, int M_GLOBAL, int K_GLOBAL, i
         for (int j = 0; j < K_GLOBAL; j++) {
             int r = rand() % 100;
             if (r >= MATRIX_A_PRUNING_PERCENTAGE)
-                a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
-                // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
+                // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
+                a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
             else
                 a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
             // b[j + i * K_GLOBAL] = a[j + i * K_GLOBAL];
@@ -95,9 +95,9 @@ __host__ void init_host_matrices(half *a, half *b, int M_GLOBAL, int K_GLOBAL, i
             int r = rand() % 100;
             if (r >= MATRIX_A_PRUNING_PERCENTAGE)
 
-                b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
+                // b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
 
-                // b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>(10 * i + 0.01 * j));
+                b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
 
             else
                 b[j + i * N_GLOBAL] = __float2half_rn(0.0f);

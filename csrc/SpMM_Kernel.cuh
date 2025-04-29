@@ -103,40 +103,40 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
         // Copying next Sparse A Tile to write shem
         CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem, Compressed_A + current_sparse_tile_start, current_sparse_tile_nnz, true);
         CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_B_, Compressed_B + current_sparse_tile_start_B, current_sparse_tile_nnz_B, true);
-        // __syncthreads();
-        // // // 添加调试打印
-        // if (threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
-        //     printf("\n=== smem_B (64x64) ===\n");
-        //     for (int i = 0; i < 64; i++) {
-        //         for (int j = 0; j < 64; j++) {
-        //             printf("%.2f ", __half2float(smem_B[i * 64 + j]));
-        //             if (j % 16 == 15)
-        //                 printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
+        __syncthreads();
+        // // 添加调试打印
+        if (threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
+            printf("\n=== smem_B (64x64) ===\n");
+            for (int i = 0; i < 64; i++) {
+                for (int j = 0; j < 64; j++) {
+                    printf("%.2f ", __half2float(smem_B[i * 64 + j]));
+                    if (j % 16 == 15)
+                        printf("\n");
+                }
+                printf("\n");
+            }
 
-        //     printf("\n=== smem_+++_ (64x64) ===\n");
-        //     for (int i = 0; i < 64; i++) {
-        //         for (int j = 0; j < 64; j++) {
-        //             printf("%.2f ", __half2float(smem_B_[i * 64 + j]));
-        //             if (j % 16 == 15)
-        //                 printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
+            printf("\n=== smem_+++_ (64x64) ===\n");
+            for (int i = 0; i < 64; i++) {
+                for (int j = 0; j < 64; j++) {
+                    printf("%.2f ", __half2float(smem_B_[i * 64 + j]));
+                    if (j % 16 == 15)
+                        printf("\n");
+                }
+                printf("\n");
+            }
 
-        //     printf("\n=== smem_A (64x64) ===\n");
-        //     for (int i = 0; i < 64; i++) {
-        //         for (int j = 0; j < 64; j++) {
-        //             printf("%.2f ", __half2float(smem[i * 64 + j]));
-        //             if (j % 16 == 15)
-        //                 printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
-        // }
-        // __syncthreads();
+            printf("\n=== smem_A (64x64) ===\n");
+            for (int i = 0; i < 64; i++) {
+                for (int j = 0; j < 64; j++) {
+                    printf("%.2f ", __half2float(smem[i * 64 + j]));
+                    if (j % 16 == 15)
+                        printf("\n");
+                }
+                printf("\n");
+            }
+        }
+        __syncthreads();
 
 
         SpMM_LoadFragAwithBitmapFromShem(a, smem + TileOffsets_ThisWarp[(tile_id_k) * 4], smem_BitmapWarp, true);

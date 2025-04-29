@@ -181,42 +181,42 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         }
         SpMM_LoadFragAwithBitmapFromShem_B(b_, &smem_B, smem_Bitmap_B, TileOffsets_ThisWarp, k, true);
 
-        // __syncthreads();
+       
 
-        // // // 添加调试信息
-        // // //
-        // if (threadIdx.x == 0&& blockIdx.x == 0 && blockIdx.y == 0) {
-        //     printf("=== Debug Info ===\n");
-        //     printf("Thread %d: warp_start_row=%d, warp_start_col=%d\n", threadIdx.x, warp_start_row, warp_start_col);
-        //     printf("\n=== b_read matrix (4x4) ===\n");
-        //     for (int i = 0; i < 4; i++) {
-        //         for (int j = 0; j < 4; j++) {
-        //             half2 val = *reinterpret_cast<half2 *>(&b_read[i][j]);
-        //             printf("%.2f %.2f\t", __half2float(val.x), __half2float(val.y));
-        //         }
-        //         printf("\n");
-        //     }
+        // // 添加调试信息
+        // //
+        __syncthreads();
+        if (threadIdx.x == 0&& blockIdx.x == 0 && blockIdx.y == 0) {
+            printf("=== Debug Info ===\n");
+            printf("Thread %d: warp_start_row=%d, warp_start_col=%d\n", threadIdx.x, warp_start_row, warp_start_col);
+            printf("\n=== b_read matrix (4x4) ===\n");
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    half2 val = *reinterpret_cast<half2 *>(&b_read[i][j]);
+                    printf("%.2f %.2f\t", __half2float(val.x), __half2float(val.y));
+                }
+                printf("\n");
+            }
 
-        //     printf("\n=== b_ matrix (4x4) ===\n");
-        //     for (int i = 0; i < 4; i++) {
-        //         for (int j = 0; j < 4; j++) {
-        //             half2 val = *reinterpret_cast<half2 *>(&b_[i][j]);
-        //             printf("%.2f %.2f\t", __half2float(val.x), __half2float(val.y));
-        //         }
-        //         printf("\n");
-        //     }
+            printf("\n=== b_ matrix (4x4) ===\n");
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    half2 val = *reinterpret_cast<half2 *>(&b_[i][j]);
+                    printf("%.2f %.2f\t", __half2float(val.x), __half2float(val.y));
+                }
+                printf("\n");
+            }
 
-        //     printf("\n=== A_ matrix (4x4) ===\n");
-        //     for (int i = 0; i < 4; i++) {
-        //         for (int j = 0; j < 4; j++) {
-        //             half2 val = *reinterpret_cast<half2 *>(&a[i][j]);
-        //             printf("%.2f %.2f\t", __half2float(val.x), __half2float(val.y));
-        //         }
-        //         printf("\n");
-        //     }
-
-        // }
-        // __syncthreads();
+            printf("\n=== A_ matrix (4x4) ===\n");
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    half2 val = *reinterpret_cast<half2 *>(&a[i][j]);
+                    printf("%.2f %.2f\t", __half2float(val.x), __half2float(val.y));
+                }
+                printf("\n");
+            }
+        }
+        __syncthreads();
         // half error = 0;
         // for (int i = 0; i < 4; i++) {
         //     for (int j = 0; j < 4; j++) {
@@ -259,9 +259,9 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         // __syncthreads();
 
         for (int j = 0; j < TilingConfig::WARP_COL_TENSORS; j++) {
-            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b_read[j]);
+            MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1], a[k], b_[j]);
             if (!TilingConfig::N8)
-                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b_read[j] + 2); // c+4; b+2
+                MMA_FP16_M16N8K16(c_uint32_t[j * WARP_ROW_TENSORS_BITMAP_V1] + 4, a[k], b_[j] + 2); // c+4; b+2
         }
     }
 }

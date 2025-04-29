@@ -29,8 +29,8 @@ int main(int argc, char **argv) {
     // int N_GLOBAL = 1024;
 
     int M_GLOBAL = 128;
-    int K_GLOBAL = 128;
-    int N_GLOBAL = 1024;
+    int K_GLOBAL = 64;
+    int N_GLOBAL = 128;
     int MATRIX_A_PRUNING_PERCENTAGE = 50;
     int SPLIT_K = 1;
     cublasStatus_t cublas_status;
@@ -65,15 +65,15 @@ int main(int argc, char **argv) {
     cudaMemcpy(A, A_h, sizeof(half) * M_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     cudaMemcpy(B, B_h, sizeof(half) * N_GLOBAL * K_GLOBAL, cudaMemcpyHostToDevice);
     checkLastCudaError(__LINE__);
-    // printf("\n=== B_h (64x64) ===\n");
-    // for (int i = 0; i < 64; i++) {
-    //     for (int j = 0; j < 64; j++) {
-    //         printf("%.2f ", __half2float(B_h[i * 64 + j]));
-    //         if (j % 16 == 15)
-    //             printf("\n");
-    //     }
-    //     printf("\n");
-    // }
+    printf("\n=== B_h (64x64) ===\n");
+    for (int i = 0; i < 64; i++) {
+        for (int j = 0; j < 64; j++) {
+            printf("%.2f ", __half2float(B_h[i * 64 + j]));
+            if (j % 16 == 15)
+                printf("\n");
+        }
+        printf("\n");
+    }
     // CUBLAS
     /////////////////////////////////////////////////////////////////////////////////////////////////
     printf("Launching CuBlas...\n");
