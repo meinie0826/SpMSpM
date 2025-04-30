@@ -28,11 +28,20 @@ int main(int argc, char **argv) {
     // int K_GLOBAL = 8192;
     // int N_GLOBAL = 1024;
 
-    int M_GLOBAL = 36864;
-    int K_GLOBAL = 36864;
-    int N_GLOBAL = 36864;
-    int MATRIX_A_PRUNING_PERCENTAGE = 50;
-    int SPLIT_K = 1;
+    int M_GLOBAL = atoi(argv[1]);
+    int K_GLOBAL = atoi(argv[2]); 
+    int N_GLOBAL = atoi(argv[3]);
+    int MATRIX_A_PRUNING_PERCENTAGE = atoi(argv[4]);
+    int SPLIT_K = atoi(argv[5]);
+
+
+    // int M_GLOBAL = 36864;
+    // int K_GLOBAL = 36864;
+    // int N_GLOBAL = 36864;
+    // int MATRIX_A_PRUNING_PERCENTAGE = 50;
+    // int SPLIT_K = 1;
+
+
     cublasStatus_t cublas_status;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
