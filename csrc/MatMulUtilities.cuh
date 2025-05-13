@@ -80,7 +80,8 @@ __device__ __forceinline__ void SpMM_LoadFragAwithBitmapFromShem_B(uint32_t __re
 
 // New features: Copy size is X * 64, X can be any multiple to 8
 template <int NumOfRowsToCopy, typename TilingConfig> // NumOfRowsToCopy must be multiple to COPY_UNIT_FP16_ROWS
-__device__ __forceinline__ void CopyTileFromGlobalToShared_X_64(half *__restrict__ SharedPTR, const half *GlobalPTR, const int GlobalStride,
+__device__ __forceinline__ void CopyTileFromGlobalToShared_X_64
+(half *__restrict__ SharedPTR, const half *GlobalPTR, const int GlobalStride,
                                                                 bool Pred = true) {
     //
     int lane_id = threadIdx.x % 32;
@@ -186,7 +187,7 @@ __device__ __forceinline__ void PipelinedCoreComputationsBitmap(float c[][REG_PE
         // // 添加调试信息
         // //
         __syncthreads();
-        if (threadIdx.x == 0&& blockIdx.x == 0 && blockIdx.y == 0) {
+        if (threadIdx.x == 0 && blockIdx.x == 0 && blockIdx.y == 0) {
             printf("=== Debug Info ===\n");
             printf("Thread %d: warp_start_row=%d, warp_start_col=%d\n", threadIdx.x, warp_start_row, warp_start_col);
             printf("\n=== b_read matrix (4x4) ===\n");

@@ -67,3 +67,7 @@ spmm_test: spmm_test.o
 
 clean:
 	rm -f SpMM_API.o spmm_test.o spmm_test
+
+run: clean
+	$(MAKE) -j90
+	./spmm_test > out

@@ -36,8 +36,8 @@ static void SpMM_SplitK_Kernel_Ex_bitmap_v3(cudaStream_t stream, const half *A, 
     dim3 BlockDim(WARP_SIZE * TilingConfig::BLOCK_WARPS, 1, 1);
     // 添加调试输出
 
-    // printf("GridDim: (%d, %d, %d)\n", GridDim.x, GridDim.y, GridDim.z);
-    // printf("BlockDim: (%d, %d, %d)\n", BlockDim.x, BlockDim.y, BlockDim.z);
+    printf("GridDim: (%d, %d, %d)\n", GridDim.x, GridDim.y, GridDim.z);
+    printf("BlockDim: (%d, %d, %d)\n", BlockDim.x, BlockDim.y, BlockDim.z);
 
     SpMM_Kernel_bitmap_v3<TilingConfig><<<GridDim, BlockDim, SHMEM_SZ, stream>>>(
         A, Compressed_A, TileOffsets, TileOffsets_Median, bitmap, max_nnz_intile, B, Compressed_B, TileOffsets_B, TileOffsets_Median_B, bitmap_B,

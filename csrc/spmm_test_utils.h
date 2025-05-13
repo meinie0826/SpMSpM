@@ -82,25 +82,26 @@ __host__ void init_host_matrices(half *a, half *b, int M_GLOBAL, int K_GLOBAL, i
     for (int i = 0; i < M_GLOBAL; i++) {
         for (int j = 0; j < K_GLOBAL; j++) {
             int r = rand() % 100;
-            if (r >= MATRIX_A_PRUNING_PERCENTAGE)
+            // if (r >= MATRIX_A_PRUNING_PERCENTAGE)
+            if(j%2 == 0)
                 // a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
-                a[j + i * K_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
+                a[j + i * K_GLOBAL] = __float2half(static_cast<float>(1 * i + 0.01 * j));
             else
-                a[j + i * K_GLOBAL] = __float2half_rn(0.0f);
+                a[j + i * K_GLOBAL] = __float2half(0.0f);
             // b[j + i * K_GLOBAL] = a[j + i * K_GLOBAL];
         }
     }
     for (int i = 0; i < K_GLOBAL; i++) {
         for (int j = 0; j < N_GLOBAL; j++) {
             int r = rand() % 100;
-            if (r >= MATRIX_A_PRUNING_PERCENTAGE)
-
+            // if (r >= MATRIX_A_PRUNING_PERCENTAGE)
+             if(j%2 == 0)
                 // b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>((rand() % 5)) / 5 - 0.5f);
 
-                b[j + i * N_GLOBAL] = __float2half_rn(static_cast<float>(1 * i + 0.01 * j));
+                b[j + i * N_GLOBAL] = __float2half(static_cast<float>(1 * i + 0.01 * j));
 
             else
-                b[j + i * N_GLOBAL] = __float2half_rn(0.0f);
+                b[j + i * N_GLOBAL] = __float2half(0.0f);
         }
     }
     // for (int i = 0; i < N_GLOBAL * K_GLOBAL; i++)
@@ -524,7 +525,7 @@ int InitSparseMatrixA_bitmap_v6_B(half *A_h, int M, int K,
                                   int tile_M_median, // 16
                                   int tile_M_global, // 64
                                   int tile_K,        // 8
-                                  int tile_K_median, // 64
+                                  int tile_K_median, // 16
                                   int tile_K_global, // 64
                                   half **Compressed_Val, int **TileOffsets, int **TileOffsets_median, int **TileOffsets_global, uint64_t **bitmap,
                                   int &max_nnz_count) {
