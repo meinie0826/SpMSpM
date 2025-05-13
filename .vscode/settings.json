@@ -1,9 +1,10 @@
 {
         "files.associations": {
-                "format": "cpp",
-                "random": "cpp",
-                "compare": "cpp",
-                "cstdint": "cpp"
+            "format": "cpp",
+            "random": "cpp",
+            "compare": "cpp",
+            "cstdint": "cpp",
+            "cmath": "cpp"
         },
         "C_Cpp.errorSquiggles": "disabled"
 }
