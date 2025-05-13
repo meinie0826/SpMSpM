@@ -1,21 +1,84 @@
-
-=== b matrix (4x4) ===
-0.00 0.01	0.00 0.00	8.00 0.00	0.00 8.09	
-16.00 16.02	16.08 0.00	24.00 24.02	24.08 0.00	
-32.00 32.00	32.09 0.00	0.00 0.00	40.09 0.00	
-48.00 48.00	0.00 48.09	0.00 0.00	56.09 0.00	
-
-=== b_ matrix (4x4) ===
-0.00 0.00	0.00 0.00	8.00 8.02	0.00 0.00	
-0.00 0.00	0.24 0.26	0.00 0.00	8.24 8.25	
-0.00 0.00	0.00 0.00	0.00 0.00	8.40 8.41	
-0.00 0.00	0.56 0.57	0.00 0.00	0.00 0.00	
-
-=== a_ matrix (4x4) ===
-0.00 0.00	0.00 0.00	8.00 8.02	0.00 0.00	
-0.00 0.00	0.24 0.26	0.00 0.00	8.24 8.25	
-0.00 0.00	0.00 0.00	0.00 0.00	8.40 8.41	
-0.00 0.00	0.56 0.57	0.00 0.00	0.00 0.00	
-TileOffsets_ThisWarp[0]: 0
-SpInfer    	 -> 		 Time/ms: 233.447 	 Performance/TFLOPs: 0.00 	 TotalError: inf
-CuBlas_TC  	 -> 		 Time/ms: 43.984 	 Performance/TFLOPs: 0.00 	 TotalError: 0.00
+Running spinfer and cublas test case: M=256, K=256, N=256, S=50, SK=1
+Preparing dense data for GPU...
+Launching CuBlas...
+num_global_tiles: 16, bitmap v3 NNZ: 32816, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2112 
+Done! Compressed A matrix for bitmap v3 GPU kernel.
+Compressing B matrix...
+B num_global_tiles: 16, bitmap v3 NNZ: 32816, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2112 
+Done! Compressed B matrix for bitmap v3 GPU kernel.
+Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
+Split_K = 1
+SpInfer    	 -> 		 Time/ms: 0.010 	 Performance/TFLOPs: 3.41 	 TotalError: 0.00
+CuBlas_TC  	 -> 		 Time/ms: 0.134 	 Performance/TFLOPs: 0.25 	 TotalError: 0.00
+Running spinfer and cublas test case: M=512, K=512, N=512, S=50, SK=1
+Preparing dense data for GPU...
+Launching CuBlas...
+num_global_tiles: 64, bitmap v3 NNZ: 131168, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2176 
+Done! Compressed A matrix for bitmap v3 GPU kernel.
+Compressing B matrix...
+B num_global_tiles: 64, bitmap v3 NNZ: 131168, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2176 
+Done! Compressed B matrix for bitmap v3 GPU kernel.
+Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
+Split_K = 1
+SpInfer    	 -> 		 Time/ms: 0.017 	 Performance/TFLOPs: 15.49 	 TotalError: 0.00
+CuBlas_TC  	 -> 		 Time/ms: 0.133 	 Performance/TFLOPs: 2.02 	 TotalError: 0.00
+Running spinfer and cublas test case: M=1024, K=1024, N=1024, S=50, SK=1
+Preparing dense data for GPU...
+Launching CuBlas...
+num_global_tiles: 256, bitmap v3 NNZ: 525360, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2176 
+Done! Compressed A matrix for bitmap v3 GPU kernel.
+Compressing B matrix...
+B num_global_tiles: 256, bitmap v3 NNZ: 525360, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2176 
+Done! Compressed B matrix for bitmap v3 GPU kernel.
+Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
+Split_K = 1
+SpInfer    	 -> 		 Time/ms: 0.049 	 Performance/TFLOPs: 43.73 	 TotalError: 1.60
+CuBlas_TC  	 -> 		 Time/ms: 0.147 	 Performance/TFLOPs: 14.62 	 TotalError: 0.00
+Running spinfer and cublas test case: M=2048, K=2048, N=2048, S=50, SK=1
+Preparing dense data for GPU...
+Launching CuBlas...
+num_global_tiles: 1024, bitmap v3 NNZ: 2100296, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2176 
+Done! Compressed A matrix for bitmap v3 GPU kernel.
+Compressing B matrix...
+B num_global_tiles: 1024, bitmap v3 NNZ: 2100296, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2176 
+Done! Compressed B matrix for bitmap v3 GPU kernel.
+Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
+Split_K = 1
+SpInfer    	 -> 		 Time/ms: 0.341 	 Performance/TFLOPs: 50.36 	 TotalError: 13.07
+CuBlas_TC  	 -> 		 Time/ms: 0.240 	 Performance/TFLOPs: 71.67 	 TotalError: 0.00
+Running spinfer and cublas test case: M=4096, K=4096, N=4096, S=50, SK=1
+Preparing dense data for GPU...
+Launching CuBlas...
+num_global_tiles: 4096, bitmap v3 NNZ: 8405952, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2240 
+Done! Compressed A matrix for bitmap v3 GPU kernel.
+Compressing B matrix...
+B num_global_tiles: 4096, bitmap v3 NNZ: 8405952, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2240 
+Done! Compressed B matrix for bitmap v3 GPU kernel.
+Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
+Split_K = 1
+SpInfer    	 -> 		 Time/ms: 2.706 	 Performance/TFLOPs: 50.80 	 TotalError: 23241.96
+CuBlas_TC  	 -> 		 Time/ms: 0.975 	 Performance/TFLOPs: 141.02 	 TotalError: 0.00
+Running spinfer and cublas test case: M=8192, K=8192, N=8192, S=50, SK=1
+Preparing dense data for GPU...
+Launching CuBlas...
+num_global_tiles: 16384, bitmap v3 NNZ: 33613608, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2240 
+Done! Compressed A matrix for bitmap v3 GPU kernel.
+Compressing B matrix...
+B num_global_tiles: 16384, bitmap v3 NNZ: 33613608, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2240 
+Done! Compressed B matrix for bitmap v3 GPU kernel.
+Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
+Split_K = 1
+SpInfer    	 -> 		 Time/ms: 22.576 	 Performance/TFLOPs: 48.70 	 TotalError: 0.00
+CuBlas_TC  	 -> 		 Time/ms: 7.251 	 Performance/TFLOPs: 151.64 	 TotalError: 0.00
+Running spinfer and cublas test case: M=16384, K=16384, N=16384, S=50, SK=1
+Preparing dense data for GPU...
+Launching CuBlas...
+num_global_tiles: 65536, bitmap v3 NNZ: 134455104, bitmap v3 median layer NNZ: 0,  max_nnz_intilev3: 2240 
+Done! Compressed A matrix for bitmap v3 GPU kernel.
+Compressing B matrix...
+B num_global_tiles: 65536, bitmap v3 NNZ: 134455104, bitmap v3 median layer NNZ: 0, max_nnz_intilev3: 2240 
+Done! Compressed B matrix for bitmap v3 GPU kernel.
+Launching bitmapv3 without Ahead of Time Sparse Data Reordering...
+Split_K = 1
+SpInfer    	 -> 		 Time/ms: 192.521 	 Performance/TFLOPs: 45.69 	 TotalError: 79572.34
+CuBlas_TC  	 -> 		 Time/ms: 54.897 	 Performance/TFLOPs: 160.23 	 TotalError: 0.00

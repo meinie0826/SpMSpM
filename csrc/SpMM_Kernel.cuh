@@ -16,36 +16,46 @@
 #define __STDC_FORMAT_MACROS
 
 template <typename TilingConfig>
-__global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, const int *TileOffsets, const int *TileOffsets_Median,
-                                      const uint64_t *bitmap, const int *ptr_max_nnz_intile, const half *B, const half *Compressed_B,
-                                      const int *TileOffsets_B, const int *TileOffsets_Median_B, const uint64_t *bitmap_B,
-                                      const int *max_nnz_intile_B, half *Reduction_Workspace, const int M_Global, const int N_Global,
-                                      const int K_Global, int Split_K) {
+__global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A,
+                                      const int *TileOffsets, const int *TileOffsets_Median,
+                                      const uint64_t *bitmap, const int *ptr_max_nnz_intile,
+                                      const half *B, const half *Compressed_B,
+                                      const int *TileOffsets_B, const int *TileOffsets_Median_B,
+                                      const uint64_t *bitmap_B, const int *max_nnz_intile_B,
+                                      half *Reduction_Workspace, const int M_Global,
+                                      const int N_Global, const int K_Global, int Split_K)
+{
     int max_nnz_intile = *ptr_max_nnz_intile;
     int max_nnz_intile_B_ = *max_nnz_intile_B;
-
+    const int BatchID = blockIdx.y / (M_Global / TilingConfig::TILE_M);
+    const int IsLastBatch = (BatchID == (Split_K - 1));
     const int x = blockIdx.x;
     const int y = blockIdx.y % (M_Global / TilingConfig::TILE_M);
     //
     const int NumKBlock = K_Global / TILE_K; // assert (K_Global%TILE_K==0);
-    const int AverageNumKBlock = NumKBlock;
-
+    const int AverageNumKBlock = (NumKBlock - 1) / Split_K + 1;
+    const int RoundedKBlock = AverageNumKBlock * Split_K;
+    const int PaddingKBlock = RoundedKBlock - NumKBlock;
     int NumIter = 0;
-
-    NumIter = AverageNumKBlock;
+    if (IsLastBatch)
+        NumIter = AverageNumKBlock - PaddingKBlock;
+    else
+        NumIter = AverageNumKBlock;
     const int *TileOffsets_ThisBlock = nullptr;
-    const int BlockOffset = K_Global / TILE_K * y;
+    const int BlockOffset = K_Global / TILE_K * y + BatchID * AverageNumKBlock;
     TileOffsets_ThisBlock = TileOffsets + BlockOffset;
 
     const int *TileOffsets_ThisBlock_B = nullptr;
-    const int BlockOffset_B = K_Global / TILE_K * x;
+    const int BlockOffset_B = K_Global / TILE_K * x + BatchID * AverageNumKBlock;
     TileOffsets_ThisBlock_B = TileOffsets_B + BlockOffset_B;
 
     ////////
     extern __shared__ __align__(128) half smem[]; // at least be 128 Bytes aligned
     half *smem_B = &smem[max_nnz_intile];
-    uint64_t *smem_Bitmap = reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + max_nnz_intile_B_ * 2]);
-    uint64_t *smem_Bitmap_B = reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + max_nnz_intile_B_ * 2 + 512]);
+    uint64_t *smem_Bitmap =
+        reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + max_nnz_intile_B_ * 2]);
+    uint64_t *smem_Bitmap_B =
+        reinterpret_cast<uint64_t *>(&smem[max_nnz_intile + max_nnz_intile_B_ * 2 + 512]);
 
     // Warp and lane identification.
     const unsigned int warpId = threadIdx.x / WARP_SIZE;
@@ -68,21 +78,24 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
     const int WarpOffset = BlockOffset * 4 + Warp_i;
     TileOffsets_ThisWarp = TileOffsets_Median + WarpOffset;
 
-
     // gld addr of copying B tile from GlobalMemory to SharedMemory
-    const uint64_t *BitmapTileGlobalPTR = bitmap + Tile_Start_Bitmap * K_Global;
-    const uint64_t *BitmapTileGlobalPTR_B = bitmap_B + Tile_Start_Bitmap_B * K_Global;
+    const uint64_t *BitmapTileGlobalPTR = bitmap + Tile_Start_Bitmap * K_Global + BatchID * AverageNumKBlock * TilingConfig::TILE_BITMAP_K_V3;
+    const uint64_t *BitmapTileGlobalPTR_B = bitmap_B + Tile_Start_Bitmap_B * K_Global + BatchID * AverageNumKBlock * TilingConfig::TILE_BITMAP_K_V3;
 
     // copy A val and bitmap to shared memory
-    CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(smem_Bitmap, BitmapTileGlobalPTR);
+    CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(
+        smem_Bitmap, BitmapTileGlobalPTR);
     CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem, Compressed_A + TileOffsets_ThisBlock[0],
-                                                    TileOffsets_ThisBlock[0 + 1] - TileOffsets_ThisBlock[0]);
+                                                    TileOffsets_ThisBlock[0 + 1] -
+                                                        TileOffsets_ThisBlock[0]);
     cp_async_group_commit();
 
     // copy B val and bitmap to shared memory
-    CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(smem_Bitmap_B, BitmapTileGlobalPTR_B);
-    CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_B, Compressed_B + TileOffsets_ThisBlock_B[0],
-                                                    TileOffsets_ThisBlock_B[0 + 1] - TileOffsets_ThisBlock_B[0]);
+    CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(
+        smem_Bitmap_B, BitmapTileGlobalPTR_B);
+    CopyTileFromGlobalToShared_Sparse<TilingConfig>(
+        smem_B, Compressed_B + TileOffsets_ThisBlock_B[0],
+        TileOffsets_ThisBlock_B[0 + 1] - TileOffsets_ThisBlock_B[0]);
     cp_async_group_commit();
 
     // Initilazing C Matrix to Zeros.
@@ -108,47 +121,59 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
 // Go through the global K dimension by a fixed step at a time.
 // write buffer[1] first, read buffer[0] first
 #pragma unroll(1)
-    for (int tile_id_k = 0; tile_id_k < NumIter; tile_id_k++) {
+    for (int tile_id_k = 0; tile_id_k < NumIter; tile_id_k++)
+    {
         BitmapTileGlobalPTR = BitmapTileGlobalPTR + TilingConfig::TILE_BITMAP_K_V3;
         BitmapTileGlobalPTR_B = BitmapTileGlobalPTR_B + TilingConfig::TILE_BITMAP_K_V3;
 
         current_sparse_tile_start = TileOffsets_ThisBlock[tile_id_k + 1];
-        current_sparse_tile_nnz = TileOffsets_ThisBlock[tile_id_k + 1 + 1] - TileOffsets_ThisBlock[tile_id_k + 1];
+        current_sparse_tile_nnz =
+            TileOffsets_ThisBlock[tile_id_k + 1 + 1] - TileOffsets_ThisBlock[tile_id_k + 1];
 
         current_sparse_tile_start_B = TileOffsets_ThisBlock_B[tile_id_k + 1];
-        current_sparse_tile_nnz_B = TileOffsets_ThisBlock_B[tile_id_k + 1 + 1] - TileOffsets_ThisBlock_B[tile_id_k + 1];
+        current_sparse_tile_nnz_B =
+            TileOffsets_ThisBlock_B[tile_id_k + 1 + 1] - TileOffsets_ThisBlock_B[tile_id_k + 1];
 
         // double buffer
         half *__restrict__ smem_write_B_PTR = smem_B;
         half *__restrict__ smem_read_B_PTR = smem_B;
-        smem_write_B_PTR = smem_B + ((tile_id_k + 1) % 2) * (max_nnz_intile_B_); // The current write address of B
-        smem_read_B_PTR = smem_B + ((tile_id_k) % 2) * (max_nnz_intile_B_);      // The current reading address of B
+        smem_write_B_PTR =
+            smem_B + ((tile_id_k + 1) % 2) * (max_nnz_intile_B_); // The current write address of B
+        smem_read_B_PTR =
+            smem_B + ((tile_id_k) % 2) * (max_nnz_intile_B_); // The current reading address of B
 
         uint64_t *__restrict__ smem_Bitmap_B_write_B_PTR = smem_Bitmap_B;
         uint64_t *__restrict__ smem_Bitmap_B_read_B_PTR = smem_Bitmap_B;
-        smem_Bitmap_B_write_B_PTR = smem_Bitmap_B + ((tile_id_k + 1) % 2) * (64); // The current write address of B
-        smem_Bitmap_B_read_B_PTR = smem_Bitmap_B + ((tile_id_k) % 2) * (64);      // The current reading address of B
+        smem_Bitmap_B_write_B_PTR =
+            smem_Bitmap_B + ((tile_id_k + 1) % 2) * (64); // The current write address of B
+        smem_Bitmap_B_read_B_PTR =
+            smem_Bitmap_B + ((tile_id_k) % 2) * (64); // The current reading address of B
 
         bool GlobalCopy = (tile_id_k + 1) < NumIter;
 
         // copy A val and bitmap to shared memory
-        CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(smem_Bitmap, BitmapTileGlobalPTR, GlobalCopy);
-        CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem, Compressed_A + current_sparse_tile_start, current_sparse_tile_nnz, GlobalCopy);
+        CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(
+            smem_Bitmap, BitmapTileGlobalPTR, GlobalCopy);
+        CopyTileFromGlobalToShared_Sparse<TilingConfig>(
+            smem, Compressed_A + current_sparse_tile_start, current_sparse_tile_nnz, GlobalCopy);
         cp_async_group_commit();
 
         // copy B val and bitmap to shared memory
-        CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(smem_Bitmap_B_write_B_PTR, BitmapTileGlobalPTR_B,
-                                                                                             GlobalCopy);
-        CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_write_B_PTR, Compressed_B + current_sparse_tile_start_B, current_sparse_tile_nnz_B,
-                                                        GlobalCopy);
+        CopyTileFromGlobalToShared_Bitmap_1_64<TilingConfig::TILE_BITMAP_M_V3, TilingConfig>(
+            smem_Bitmap_B_write_B_PTR, BitmapTileGlobalPTR_B, GlobalCopy);
+        CopyTileFromGlobalToShared_Sparse<TilingConfig>(smem_write_B_PTR,
+                                                        Compressed_B + current_sparse_tile_start_B,
+                                                        current_sparse_tile_nnz_B, GlobalCopy);
         cp_async_group_commit();
 
-        PipelinedCoreComputationsBitmap<TilingConfig>(c, a, b_, smem_read_B_PTR, warp_start_row, warp_start_col, smem_Bitmap_B_read_B_PTR);
+        PipelinedCoreComputationsBitmap<TilingConfig>(c, a, b_, smem_read_B_PTR, warp_start_row,
+                                                      warp_start_col, smem_Bitmap_B_read_B_PTR);
 
         cp_async_wait_group<1>();
         __syncthreads();
 
-        SpMM_LoadFragAwithBitmapFromShem(a, smem + TileOffsets_ThisWarp[(tile_id_k + 1) * 4], smem_BitmapWarp, GlobalCopy);
+        SpMM_LoadFragAwithBitmapFromShem(a, smem + TileOffsets_ThisWarp[(tile_id_k + 1) * 4],
+                                         smem_BitmapWarp, GlobalCopy);
         cp_async_wait_group<0>(); // Sync to ensure the completion of Loading B to shared memory
         __syncthreads();
     }
@@ -160,7 +185,7 @@ __global__ void SpMM_Kernel_bitmap_v3(const half *A, const half *Compressed_A, c
     StoreToSharedMemoryFromRegisterBitmapV3<TilingConfig>(smem_CFrag, c);
 
     // Now that shared memory contains all the D tiles, stream them to global memory.
-    half *BlockGlobalPTR = Reduction_Workspace + Tile_Start_M + Tile_Start_N * M_Global;
+    half *BlockGlobalPTR = Reduction_Workspace + BatchID * (M_Global * N_Global) + Tile_Start_M + Tile_Start_N * M_Global;
 #pragma unroll
     for (int i = warpId; i < TilingConfig::TILE_N2; i += TilingConfig::BLOCK_WARPS)
 #pragma unroll
