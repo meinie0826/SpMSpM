@@ -28,11 +28,11 @@ int main(int argc, char **argv) {
     // int K_GLOBAL = 8192;
     // int N_GLOBAL = 1024;
 
-    int M_GLOBAL = 64;
-    int K_GLOBAL = 128;
-    int N_GLOBAL = 64;
+    int M_GLOBAL = 1024;
+    int K_GLOBAL = 1024;
+    int N_GLOBAL = 1024;
     int MATRIX_A_PRUNING_PERCENTAGE = 50;
-    int SPLIT_K = 1;
+    int SPLIT_K = 8;
     cublasStatus_t cublas_status;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -319,13 +319,13 @@ int main(int argc, char **argv) {
     cudaFree(max_nnz_intilev3_gpu);
 
     double totalError_SpMM_bitmapv3 = 0.0;
-
+    double totalVal = 0.0;
     totalError_SpMM_bitmapv3 = ComputeTotalError(D_cublas_h, D_SpMM_hbitmapv3, M_GLOBAL, N_GLOBAL);
-
+    totalVal = ComputeTotalVal(D_cublas_h, D_SpMM_hbitmapv3, M_GLOBAL, N_GLOBAL); 
     free(D_SpMM_hbitmapv3);
 
     PrintPerformance("SpInfer", milliseconds_SpMM_bitmapv3, tflops_SpMM_bitmapv3, totalError_SpMM_bitmapv3);
-    PrintPerformance("CuBlas_TC", milliseconds_cublas_tc, tflops_cublas_tc, 0.0);
+    PrintPerformance("CuBlas_TC", milliseconds_cublas_tc, tflops_cublas_tc, totalVal);
 
     free(D_cublas_h);
     free(A_h);
