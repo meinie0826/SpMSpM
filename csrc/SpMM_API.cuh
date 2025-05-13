@@ -48,7 +48,6 @@ cudaError_t SpMM_SplitK_API_bitmap_v3(cudaStream_t stream, const half *A, const 
                                       const int *TileOffsets_Median, const uint64_t *bitmap, const int *max_nnz_intile, const half *B,
                                       const half *Compressed_B, const int *TileOffsets_B, const int *TileOffsets_Median_B, const uint64_t *bitmap_B,
                                       const int *max_nnz_intile_B,
-
                                       half *C, const int M_Global, const int N_Global, const int K_Global,
                                       half *Reduction_Workspace, // Identical workspace for all SpMM kernel launchesSpMM_SplitK_Kernel_Ex_bitmap
                                       int Split_K) {

@@ -46,7 +46,7 @@ ALL_CCFLAGS += --ptxas-options=-v,-warn-lmem-usage,--warn-on-spills
 ################################################################################
 
 HEAD_FILES = SpMM_API.cuh \
-			Reduction_Kernel.cuh SpMM_Kernel.cuh \
+				Reduction_Kernel.cuh SpMM_Kernel.cuh \
 			 MatMulUtilities.cuh \
 			 MMA_PTX.cuh AsyncCopy_PTX.cuh \
 			 TilingConfig.h
