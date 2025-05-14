@@ -35,11 +35,11 @@ int main(int argc, char **argv) {
     int SPLIT_K = atoi(argv[5]);
 
 
-    // int M_GLOBAL = 36864;
-    // int K_GLOBAL = 36864;
-    // int N_GLOBAL = 36864;
+    // int M_GLOBAL = 8192;
+    // int K_GLOBAL = 8192;
+    // int N_GLOBAL = 8192;
     // int MATRIX_A_PRUNING_PERCENTAGE = 50;
-    // int SPLIT_K = 1;
+    // int SPLIT_K = 8;
 
 
     cublasStatus_t cublas_status;

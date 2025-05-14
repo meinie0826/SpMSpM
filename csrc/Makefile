@@ -63,7 +63,11 @@ spmm_test.o: spmm_test.cu spmm_test_utils.h
 
 
 spmm_test: spmm_test.o 
-	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $^ $(LIBRARIES)
+	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(ALL_CCFLAGS)  $(GENCODE_FLAGS) -o $@ $^ $(LIBRARIES)
 
 clean:
 	rm -f SpMM_API.o spmm_test.o spmm_test
+
+run : clean
+	$(MAKE) -j90
+	./run_all_main.sh > out4
