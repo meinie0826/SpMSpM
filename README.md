@@ -1,4 +1,4 @@
-# SpInfer Artifact for EuroSys'25.
+
 
 ## 1. Clone this project.
 ```bash
@@ -88,17 +88,6 @@ Note: Model_dir is different for SpInfer, Flash-llm and Faster-Transformer.
 
 ---
 
-**If you find this work useful, please cite this project and our [paper](https://dl.acm.org/doi/10.1145/3689031.3717481)**.
-
-  ```tex
-  @inproceedings{fan2025spinfer,
-    title={SpInfer: Leveraging Low-Level Sparsity for Efficient Large Language Model Inference on GPUs},
-    author={Fan, Ruibo and Yu, Xiangrui and Dong, Peijie and Li, Zeyu and Gong, Gu and Wang, Qiang and Wang, Wei and Chu, Xiaowen},
-    booktitle={Proceedings of the Twentieth European Conference on Computer Systems},
-    pages={243--260},
-    year={2025}
-  }
-  ```
 
 ```
 { BasedOnStyle: LLVM, IndentWidth: 4, TabWidth: 4, UseTab: Never, AlignAfterOpenBracket: Align, AlignOperands: Align, AlignConsecutiveAssignments: Consecutive, AlignConsecutiveDeclarations: Consecutive, SpaceBeforeAssignmentOperators: true, SpaceAfterCStyleCast: true, SpaceBeforeParens: Never, SpaceInEmptyParentheses: false, SpacesInAngles: Never, SpacesInContainerLiterals: false, PointerAlignment: Left, ColumnLimit: 100, BreakBeforeBraces: Allman, AllowShortFunctionsOnASingleLine: false }
