@@ -90,5 +90,5 @@ Note: Model_dir is different for SpInfer, Flash-llm and Faster-Transformer.
 
 
 ```
-{ BasedOnStyle: LLVM, IndentWidth: 4, TabWidth: 4, UseTab: Never, AlignAfterOpenBracket: Align, AlignOperands: Align, AlignConsecutiveAssignments: Consecutive, AlignConsecutiveDeclarations: Consecutive, SpaceBeforeAssignmentOperators: true, SpaceAfterCStyleCast: true, SpaceBeforeParens: Never, SpaceInEmptyParentheses: false, SpacesInAngles: Never, SpacesInContainerLiterals: false, PointerAlignment: Left, ColumnLimit: 100, BreakBeforeBraces: Allman, AllowShortFunctionsOnASingleLine: false }
+{ BasedOnStyle: LLVM, IndentWidth: 4, TabWidth: 4, UseTab: Never, AlignAfterOpenBracket: Align, AlignOperands: Align, AlignConsecutiveAssignments: Consecutive, AlignConsecutiveDeclarations: Consecutive, SpaceBeforeAssignmentOperators: true, SpaceAfterCStyleCast: true, SpaceBeforeParens: Never, SpaceInEmptyParentheses: false, SpacesInAngles: Never, SpacesInContainerLiterals: false, PointerAlignment: Left, ColumnLimit: 130, BreakBeforeBraces: Attach, AllowShortFunctionsOnASingleLine: false }
 ```
